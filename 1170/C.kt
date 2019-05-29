@@ -11,7 +11,7 @@ fun main(args: Array<String>?) {
 	sc.close()
 }
 
-internal fun solve(s: String?, t: String?): Boolean {
+private fun solve(s: String?, t: String?): Boolean {
 	var index = 0
 	for (target in t!!.toCharArray()) {
 		if (index == s!!.length) {

@@ -11,7 +11,7 @@ fun main(args: Array<String>?) {
 	sc.close()
 }
 
-internal fun solve(x: Int, y: Int): String? {
+private fun solve(x: Int, y: Int): String? {
 	val a = Math.min(x, y) - 1
 	val b = x - a
 	val c = y - a

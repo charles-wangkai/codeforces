@@ -11,7 +11,7 @@ fun main(args: Array<String>?) {
 	sc.close()
 }
 
-internal fun solve(a: IntArray?): Int {
+private fun solve(a: IntArray?): Int {
 	var max1 = Integer.MIN_VALUE
 	var max2 = Integer.MIN_VALUE
 	var result = 0
