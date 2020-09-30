@@ -1,2 +1,3 @@
-# codeforces
-My Codeforces solutions
+# CodeForces
+
+CodeForces Solutions that I Solved in Java
