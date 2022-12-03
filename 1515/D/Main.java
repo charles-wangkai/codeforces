@@ -1,6 +1,8 @@
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Main {
@@ -30,25 +32,25 @@ public class Main {
 
     Map<Integer, Integer> leftColorToCount = buildColorToCount(c, 0, l - 1);
     Map<Integer, Integer> rightColorToCount = buildColorToCount(c, l, c.length - 1);
-    for (int leftColor : leftColorToCount.keySet()) {
-      leftColorToCount.put(
-          leftColor,
-          leftColorToCount.get(leftColor)
-              - Math.min(
-                  leftColorToCount.get(leftColor), rightColorToCount.getOrDefault(leftColor, 0)));
-    }
+    int[] restCounts =
+        leftColorToCount.keySet().stream()
+            .mapToInt(
+                leftColor ->
+                    leftColorToCount.get(leftColor)
+                        - Math.min(
+                            leftColorToCount.get(leftColor),
+                            rightColorToCount.getOrDefault(leftColor, 0)))
+            .toArray();
 
-    return leftColorToCount.values().stream().mapToInt(x -> x).sum()
-        - Math.min(
-            (l - r) / 2, leftColorToCount.values().stream().mapToInt(count -> count / 2).sum());
+    return Arrays.stream(restCounts).sum()
+        - Math.min((l - r) / 2, Arrays.stream(restCounts).map(restCount -> restCount / 2).sum());
   }
 
   static Map<Integer, Integer> buildColorToCount(int[] c, int beginIndex, int endIndex) {
-    Map<Integer, Integer> colorToCount = new HashMap<>();
-    for (int i = beginIndex; i <= endIndex; ++i) {
-      colorToCount.put(c[i], colorToCount.getOrDefault(c[i], 0) + 1);
-    }
-
-    return colorToCount;
+    return IntStream.rangeClosed(beginIndex, endIndex)
+        .map(i -> c[i])
+        .boxed()
+        .collect(
+            Collectors.toMap(Function.identity(), color -> 1, (count1, count2) -> count1 + count2));
   }
 }
