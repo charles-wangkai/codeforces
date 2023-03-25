@@ -22,7 +22,7 @@ public class Main {
   static boolean solve(char[][] matrix) {
     for (int r = 0; r < SIZE; ++r) {
       for (int c = 0; c < SIZE; ++c) {
-        if (matrix[r][c] != matrix[2 - r][2 - c]) {
+        if (matrix[r][c] != matrix[SIZE - 1 - r][SIZE - 1 - c]) {
           return false;
         }
       }
