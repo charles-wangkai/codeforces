@@ -1,7 +1,9 @@
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Stack;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -24,7 +26,7 @@ public class Main {
 
   static String solve(int[] a) {
     List<String> result = new ArrayList<>();
-    Stack<Integer> stack = new Stack<>();
+    Deque<Integer> stack = new ArrayDeque<>();
     for (int ai : a) {
       if (ai != 1) {
         while (stack.peek() + 1 != ai) {
@@ -35,7 +37,10 @@ public class Main {
       }
       stack.push(ai);
 
-      result.add(stack.stream().map(String::valueOf).collect(Collectors.joining(".")));
+      List<Integer> reversed = new ArrayList<>(stack);
+      Collections.reverse(reversed);
+
+      result.add(reversed.stream().map(String::valueOf).collect(Collectors.joining(".")));
     }
 
     return String.join("\n", result);

@@ -1,6 +1,7 @@
+import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.Scanner;
-import java.util.Stack;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -21,7 +22,7 @@ public class Main {
   }
 
   static String solve(int[] a) {
-    Stack<Integer> freeIndices = new Stack<>();
+    Deque<Integer> freeIndices = new ArrayDeque<>();
     int[] b = new int[a.length];
     Arrays.fill(b, LIMIT);
     for (int i = 0; i < b.length; ++i) {

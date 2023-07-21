@@ -1,5 +1,6 @@
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Scanner;
-import java.util.Stack;
 
 public class Main {
   public static void main(String[] args) {
@@ -15,7 +16,7 @@ public class Main {
   static String solve(String s) {
     int maxLength = 0;
     int count = 1;
-    Stack<Integer> stack = new Stack<>();
+    Deque<Integer> stack = new ArrayDeque<>();
     int nextBeginIndex = -1;
     for (int i = 0; i < s.length(); ++i) {
       if (s.charAt(i) == '(') {
@@ -25,7 +26,7 @@ public class Main {
           stack.push(nextBeginIndex);
           nextBeginIndex = -1;
         }
-      } else if (stack.empty()) {
+      } else if (stack.isEmpty()) {
         nextBeginIndex = -1;
       } else {
         int beginIndex = stack.pop();

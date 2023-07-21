@@ -1,5 +1,6 @@
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Scanner;
-import java.util.Stack;
 
 public class Main {
   public static void main(String[] args) {
@@ -16,9 +17,9 @@ public class Main {
   }
 
   static int solve(String s) {
-    Stack<Character> stack = new Stack<>();
+    Deque<Character> stack = new ArrayDeque<>();
     for (char ch : s.toCharArray()) {
-      if (ch == 'B' && !stack.empty()) {
+      if (ch == 'B' && !stack.isEmpty()) {
         stack.pop();
       } else {
         stack.push(ch);

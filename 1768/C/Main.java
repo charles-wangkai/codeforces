@@ -1,7 +1,8 @@
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.Scanner;
-import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -37,11 +38,11 @@ public class Main {
     int[] q = new int[n];
     int pNext = n;
     int qNext = n;
-    Stack<Integer> pFreeIndices = new Stack<>();
-    Stack<Integer> qFreeIndices = new Stack<>();
+    Deque<Integer> pFreeIndices = new ArrayDeque<>();
+    Deque<Integer> qFreeIndices = new ArrayDeque<>();
     for (int index : sortedIndices) {
       while (pNext > a[index]) {
-        if (pFreeIndices.empty()) {
+        if (pFreeIndices.isEmpty()) {
           return "NO";
         }
 
@@ -49,7 +50,7 @@ public class Main {
         --pNext;
       }
       while (qNext > a[index]) {
-        if (qFreeIndices.empty()) {
+        if (qFreeIndices.isEmpty()) {
           return "NO";
         }
 

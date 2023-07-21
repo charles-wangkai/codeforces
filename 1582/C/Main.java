@@ -22,7 +22,6 @@ public class Main {
       char c_ = c;
       int[] restIndices = IntStream.range(0, s.length()).filter(i -> s.charAt(i) != c_).toArray();
       if (isPalindrome(s, restIndices)) {
-        int[] indices = IntStream.range(0, s.length()).filter(i -> s.charAt(i) == c_).toArray();
         if (restIndices.length == 0) {
           return 0;
         } else {

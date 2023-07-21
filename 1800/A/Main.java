@@ -26,7 +26,6 @@ public class Main {
         .mapToObj(i -> (char) s.charAt(i))
         .map(String::valueOf)
         .collect(Collectors.joining())
-        .toLowerCase()
-        .equals("meow");
+        .equalsIgnoreCase("meow");
   }
 }

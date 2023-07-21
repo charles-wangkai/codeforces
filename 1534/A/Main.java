@@ -49,7 +49,7 @@ public class Main {
         }
       }
     }
-    if (rEven != null && rEven == wEven) {
+    if (rEven != null && rEven.equals(wEven)) {
       return "NO";
     }
 

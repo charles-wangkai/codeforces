@@ -7,7 +7,7 @@ public class Main {
 
     int t = sc.nextInt();
     for (int tc = 0; tc < t; ++tc) {
-      int n = sc.nextInt();
+      sc.nextInt();
       int q = sc.nextInt();
       String s = sc.next();
       for (int i = 0; i < q; ++i) {

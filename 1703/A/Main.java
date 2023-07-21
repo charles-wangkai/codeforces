@@ -15,6 +15,6 @@ public class Main {
   }
 
   static boolean solve(String s) {
-    return s.toUpperCase().equals("YES");
+    return s.equalsIgnoreCase("YES");
   }
 }

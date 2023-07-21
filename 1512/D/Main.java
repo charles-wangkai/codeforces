@@ -15,7 +15,6 @@ public class Main {
     for (int tc = 0; tc < t; ++tc) {
       int n = sc.nextInt();
       int[] b = new int[n + 2];
-      ;
       for (int i = 0; i < b.length; ++i) {
         b[i] = sc.nextInt();
       }

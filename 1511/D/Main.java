@@ -1,10 +1,11 @@
 // https://en.wikipedia.org/wiki/De_Bruijn_sequence
 // https://www.geeksforgeeks.org/hierholzers-algorithm-directed-graph
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -42,10 +43,10 @@ public class Main {
     }
 
     List<Integer> path = new ArrayList<>();
-    Stack<Integer> stack = new Stack<>();
+    Deque<Integer> stack = new ArrayDeque<>();
     stack.push(0);
     int current = 0;
-    while (!stack.empty()) {
+    while (!stack.isEmpty()) {
       if (adjLists[current].isEmpty()) {
         path.add(current);
         current = stack.pop();

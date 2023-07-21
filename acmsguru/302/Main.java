@@ -1,5 +1,6 @@
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Scanner;
-import java.util.Stack;
 
 public class Main {
   public static void main(String[] args) {
@@ -14,7 +15,7 @@ public class Main {
 
   static String solve(String S) {
     StringBuilder result = new StringBuilder();
-    Stack<String> tags = new Stack<>();
+    Deque<String> tags = new ArrayDeque<>();
     int index = 0;
     while (index != S.length()) {
       if (S.startsWith("<UP>", index)) {
@@ -30,7 +31,7 @@ public class Main {
         tags.pop();
         index += "</DOWN>".length();
       } else {
-        if (tags.empty()) {
+        if (tags.isEmpty()) {
           result.append(S.charAt(index));
         } else {
           if (tags.peek().equals("UP")) {

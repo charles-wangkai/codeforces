@@ -1,5 +1,6 @@
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Scanner;
-import java.util.Stack;
 
 public class Main {
   public static void main(String[] args) {
@@ -27,9 +28,9 @@ public class Main {
       }
     }
 
-    Stack<Integer> stack = new Stack<>();
+    Deque<Integer> stack = new ArrayDeque<>();
     for (int i = lastMaxIndex + 1; i < a.length; ++i) {
-      while (!stack.empty() && a[i] >= stack.peek()) {
+      while (!stack.isEmpty() && a[i] >= stack.peek()) {
         stack.pop();
       }
 

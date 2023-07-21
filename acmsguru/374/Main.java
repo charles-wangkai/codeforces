@@ -32,7 +32,7 @@ public class Main {
                   .toList());
     }
 
-    return coeffs.stream().reduce((acc, x) -> acc.add(x)).get();
+    return coeffs.stream().reduce(BigInteger::add).get();
   }
 
   static List<BigInteger> add(List<BigInteger> coeffs1, List<BigInteger> coeffs2) {
