@@ -107,7 +107,7 @@ public class Main {
   }
 
   static int[] bfs(List<Edge> edges, List<Integer>[] edgeLists, int s, int t) {
-    int[] levels = new int[edges.size()];
+    int[] levels = new int[edgeLists.length];
     Arrays.fill(levels, -1);
     levels[s] = 0;
 
