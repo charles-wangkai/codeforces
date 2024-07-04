@@ -17,6 +17,7 @@ public class Main {
 
     out.println(solve(a, k));
 
+    out.close();
     sc.close();
   }
 
