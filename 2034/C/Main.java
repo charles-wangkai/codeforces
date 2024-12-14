@@ -1,7 +1,6 @@
 import static java.util.Map.entry;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -100,8 +99,6 @@ public class Main {
         result[r][c] = escaped[toIndex(m, r, c)];
       }
     }
-
-    System.err.printf("%2$s: %1$s\n", Arrays.deepToString(result), "Arrays.deepToString(result)");
 
     return result;
   }
