@@ -1,6 +1,6 @@
-import java.util.OptionalLong;
+import java.util.OptionalInt;
 import java.util.Scanner;
-import java.util.stream.LongStream;
+import java.util.stream.IntStream;
 
 public class Main {
   public static void main(String[] args) {
@@ -26,15 +26,15 @@ public class Main {
   }
 
   static boolean solve(int[] a, int[] b) {
-    long prev = Long.MIN_VALUE;
+    int prev = Integer.MIN_VALUE;
     for (int ai : a) {
-      long prev_ = prev;
-      OptionalLong value = LongStream.of(ai, (long) b[0] - ai).filter(x -> x >= prev_).min();
+      int prev_ = prev;
+      OptionalInt value = IntStream.of(ai, b[0] - ai).filter(x -> x >= prev_).min();
       if (value.isEmpty()) {
         return false;
       }
 
-      prev = value.getAsLong();
+      prev = value.getAsInt();
     }
 
     return true;
