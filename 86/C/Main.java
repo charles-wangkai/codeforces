@@ -33,7 +33,7 @@ public class Main {
     int maxLength = Arrays.stream(collection).mapToInt(String::length).max().getAsInt();
 
     List<Node> nodes = new ArrayList<>();
-    Node root = buildAcAutomaton(nodes, collection);
+    buildAcAutomaton(nodes, collection);
 
     Map<State, Integer> dp = Map.of(new State(0, 0), 1);
     for (int i = 0; i < n; ++i) {
