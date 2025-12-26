@@ -36,31 +36,6 @@ public class Main {
   }
 
   static int solve(int n, int[] u, int[] v, int[] x, int[] s, int[] y) {
-    int result = 0;
-
-    int[] minTrainLengths = new int[n];
-    Arrays.fill(minTrainLengths, Integer.MAX_VALUE);
-    for (int i = 0; i < s.length; ++i) {
-      if (minTrainLengths[s[i] - 1] != Integer.MAX_VALUE) {
-        ++result;
-      }
-
-      minTrainLengths[s[i] - 1] = Math.min(minTrainLengths[s[i] - 1], y[i]);
-    }
-
-    PriorityQueue<Element> pq =
-        new PriorityQueue<>(
-            Comparator.comparing(Element::distance).thenComparing(Element::byTrain));
-    for (int i = 0; i < minTrainLengths.length; ++i) {
-      if (minTrainLengths[i] != Integer.MAX_VALUE) {
-        pq.offer(new Element(i, minTrainLengths[i], true));
-      }
-    }
-
-    long[] distances = new long[n];
-    Arrays.fill(distances, -1);
-    distances[0] = 0;
-
     @SuppressWarnings("unchecked")
     List<Integer>[] edgeLists = new List[n];
     for (int i = 0; i < edgeLists.length; ++i) {
@@ -71,11 +46,22 @@ public class Main {
       edgeLists[v[i] - 1].add(i);
     }
 
+    long[] distances = new long[n];
+    Arrays.fill(distances, -1);
+    distances[0] = 0;
+
+    PriorityQueue<Element> pq =
+        new PriorityQueue<>(
+            Comparator.comparing(Element::distance).thenComparing(Element::byTrain));
     for (int edge : edgeLists[0]) {
       int other = (u[edge] - 1 == 0) ? (v[edge] - 1) : (u[edge] - 1);
       pq.offer(new Element(other, x[edge], false));
     }
+    for (int i = 0; i < s.length; ++i) {
+      pq.offer(new Element(s[i] - 1, y[i], true));
+    }
 
+    int result = 0;
     while (!pq.isEmpty()) {
       Element head = pq.poll();
       if (distances[head.node()] == -1) {
