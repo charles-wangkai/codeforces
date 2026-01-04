@@ -30,9 +30,8 @@ public class Main {
   }
 
   static String solve(int[] a, String[] queries) {
-    Node segmentTree = buildNode(a, 0, a.length - 1);
-
     List<Long> result = new ArrayList<>();
+    LazySegTree lazySegTree = new LazySegTree(a);
     for (String query : queries) {
       String[] parts = query.split(" ");
       if (parts[0].equals("1")) {
@@ -41,7 +40,7 @@ public class Main {
 
         long sum = 0;
         for (int b = 0; b < BIT_NUM; ++b) {
-          sum += (1L << b) * query(l - 1, r - 1, b, segmentTree);
+          sum += (1L << b) * lazySegTree.query(l - 1, r - 1, b);
         }
 
         result.add(sum);
@@ -52,7 +51,7 @@ public class Main {
 
         for (int b = 0; b < BIT_NUM; ++b) {
           if (((x >> b) & 1) == 1) {
-            update(l - 1, r - 1, b, segmentTree);
+            lazySegTree.update(l - 1, r - 1, b);
           }
         }
       }
@@ -60,104 +59,129 @@ public class Main {
 
     return result.stream().map(String::valueOf).collect(Collectors.joining("\n"));
   }
+}
 
-  static void update(int beginIndex, int endIndex, int b, Node node) {
-    if (!(node.beginIndex > endIndex || node.endIndex < beginIndex)) {
-      if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
-        node.flipped[b] ^= true;
-      } else {
-        if (node.flipped[b]) {
-          node.flipped[b] = false;
-          update(node.left.beginIndex, node.left.endIndex, b, node.left);
-          update(node.right.beginIndex, node.right.endIndex, b, node.right);
-        }
+class LazySegTree {
+  Node root;
 
-        update(beginIndex, endIndex, b, node.left);
-        update(beginIndex, endIndex, b, node.right);
-
-        updateNodeNums(node, b);
-      }
-    }
+  LazySegTree(int[] values) {
+    root = buildNode(values, 0, values.length - 1);
   }
 
-  static int query(int beginIndex, int endIndex, int b, Node node) {
-    if (node.beginIndex > endIndex || node.endIndex < beginIndex) {
-      return 0;
-    }
-    if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
-      return node.flipped[b] ? node.num0s[b] : node.num1s[b];
-    }
-
-    if (node.flipped[b]) {
-      node.flipped[b] = false;
-      update(node.left.beginIndex, node.left.endIndex, b, node.left);
-      update(node.right.beginIndex, node.right.endIndex, b, node.right);
-
-      updateNodeNums(node, b);
-    }
-
-    return query(beginIndex, endIndex, b, node.left) + query(beginIndex, endIndex, b, node.right);
-  }
-
-  static void updateNodeNums(Node node, int b) {
-    node.num0s[b] =
-        (node.left.flipped[b] ? node.left.num1s[b] : node.left.num0s[b])
-            + (node.right.flipped[b] ? node.right.num1s[b] : node.right.num0s[b]);
-    node.num1s[b] =
-        (node.left.flipped[b] ? node.left.num0s[b] : node.left.num1s[b])
-            + (node.right.flipped[b] ? node.right.num0s[b] : node.right.num1s[b]);
-  }
-
-  static Node buildNode(int[] a, int beginIndex, int endIndex) {
+  private Node buildNode(int[] values, int beginIndex, int endIndex) {
     if (beginIndex == endIndex) {
       return new Node(
           beginIndex,
           endIndex,
-          new boolean[BIT_NUM],
-          IntStream.range(0, BIT_NUM).map(b -> 1 - ((a[beginIndex] >> b) & 1)).toArray(),
-          IntStream.range(0, BIT_NUM).map(b -> (a[beginIndex] >> b) & 1).toArray(),
+          new boolean[Main.BIT_NUM],
+          IntStream.range(0, Main.BIT_NUM).map(b -> 1 - ((values[beginIndex] >> b) & 1)).toArray(),
+          IntStream.range(0, Main.BIT_NUM).map(b -> (values[beginIndex] >> b) & 1).toArray(),
           null,
           null);
     }
 
     int middleIndex = (beginIndex + endIndex) / 2;
-    Node left = buildNode(a, beginIndex, middleIndex);
-    Node right = buildNode(a, middleIndex + 1, endIndex);
+    Node left = buildNode(values, beginIndex, middleIndex);
+    Node right = buildNode(values, middleIndex + 1, endIndex);
 
     return new Node(
         beginIndex,
         endIndex,
-        new boolean[BIT_NUM],
-        IntStream.range(0, BIT_NUM).map(b -> left.num0s[b] + right.num0s[b]).toArray(),
-        IntStream.range(0, BIT_NUM).map(b -> left.num1s[b] + right.num1s[b]).toArray(),
+        new boolean[Main.BIT_NUM],
+        IntStream.range(0, Main.BIT_NUM).map(b -> left.num0s[b] + right.num0s[b]).toArray(),
+        IntStream.range(0, Main.BIT_NUM).map(b -> left.num1s[b] + right.num1s[b]).toArray(),
         left,
         right);
   }
-}
 
-class Node {
-  int beginIndex;
-  int endIndex;
-  boolean[] flipped;
-  int[] num0s;
-  int[] num1s;
-  Node left;
-  Node right;
+  void update(int beginIndex, int endIndex, int b) {
+    update(beginIndex, endIndex, b, root);
+  }
 
-  Node(
-      int beginIndex,
-      int endIndex,
-      boolean[] flipped,
-      int[] num0s,
-      int[] num1s,
-      Node left,
-      Node right) {
-    this.beginIndex = beginIndex;
-    this.endIndex = endIndex;
-    this.flipped = flipped;
-    this.num0s = num0s;
-    this.num1s = num1s;
-    this.left = left;
-    this.right = right;
+  private void update(int beginIndex, int endIndex, int b, Node node) {
+    if (!(node.beginIndex > endIndex || node.endIndex < beginIndex)) {
+      if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
+        node.apply(b);
+      } else {
+        node.pushDown(b);
+
+        update(beginIndex, endIndex, b, node.left);
+        update(beginIndex, endIndex, b, node.right);
+
+        node.pull(b);
+      }
+    }
+  }
+
+  int query(int beginIndex, int endIndex, int b) {
+    return query(beginIndex, endIndex, b, root);
+  }
+
+  private int query(int beginIndex, int endIndex, int b, Node node) {
+    if (node.beginIndex > endIndex || node.endIndex < beginIndex) {
+      return 0;
+    }
+    if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
+      return node.getComputedNum1(b);
+    }
+
+    node.pushDown(b);
+
+    node.pull(b);
+
+    return query(beginIndex, endIndex, b, node.left) + query(beginIndex, endIndex, b, node.right);
+  }
+
+  static class Node {
+    int beginIndex;
+    int endIndex;
+    boolean[] flipped;
+    int[] num0s;
+    int[] num1s;
+    Node left;
+    Node right;
+
+    public Node(
+        int beginIndex,
+        int endIndex,
+        boolean[] flipped,
+        int[] num0s,
+        int[] num1s,
+        Node left,
+        Node right) {
+      this.beginIndex = beginIndex;
+      this.endIndex = endIndex;
+      this.flipped = flipped;
+      this.num0s = num0s;
+      this.num1s = num1s;
+      this.left = left;
+      this.right = right;
+    }
+
+    int getComputedNum0(int b) {
+      return flipped[b] ? num1s[b] : num0s[b];
+    }
+
+    int getComputedNum1(int b) {
+      return flipped[b] ? num0s[b] : num1s[b];
+    }
+
+    void pushDown(int b) {
+      if (flipped[b]) {
+        left.apply(b);
+        right.apply(b);
+
+        flipped[b] = false;
+      }
+    }
+
+    void apply(int b) {
+      flipped[b] ^= true;
+    }
+
+    void pull(int b) {
+      num0s[b] = left.getComputedNum0(b) + right.getComputedNum0(b);
+      num1s[b] = left.getComputedNum1(b) + right.getComputedNum1(b);
+    }
   }
 }
