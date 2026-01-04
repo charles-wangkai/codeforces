@@ -20,27 +20,35 @@ public class Main {
 
   static long solve(int[] a) {
     long result = 0;
-    int[] binaryIndexedTree = new int[Integer.highestOneBit(a.length) * 2 + 1];
+    FenwickTree fenwickTree = new FenwickTree(a.length);
     for (int ai : a) {
-      result += computeSum(binaryIndexedTree, a.length) - computeSum(binaryIndexedTree, ai - 1);
-      add(binaryIndexedTree, ai, 1);
+      result += fenwickTree.computePrefixSum(a.length) - fenwickTree.computePrefixSum(ai - 1);
+      fenwickTree.add(ai, 1);
     }
 
     return result;
   }
+}
 
-  static void add(int[] binaryIndexedTree, int i, int x) {
-    while (i < binaryIndexedTree.length) {
-      binaryIndexedTree[i] += x;
-      i += i & -i;
+class FenwickTree {
+  int[] a;
+
+  FenwickTree(int size) {
+    a = new int[Integer.highestOneBit(size) * 2 + 1];
+  }
+
+  void add(int pos, int delta) {
+    while (pos < a.length) {
+      a[pos] += delta;
+      pos += pos & -pos;
     }
   }
 
-  static int computeSum(int[] binaryIndexedTree, int i) {
+  int computePrefixSum(int pos) {
     int result = 0;
-    while (i != 0) {
-      result += binaryIndexedTree[i];
-      i -= i & -i;
+    while (pos != 0) {
+      result += a[pos];
+      pos -= pos & -pos;
     }
 
     return result;
