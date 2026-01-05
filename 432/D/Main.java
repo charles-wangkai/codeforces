@@ -3,7 +3,9 @@
 // https://cp-algorithms.com/string/z-function.html
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Scanner;
 
@@ -21,7 +23,7 @@ public class Main {
   static String solve(String s) {
     int[] pi = prefixFunction(s);
 
-    int[] z = zFunction(s);
+    int[] z = StringAlgo.buildZArray(s);
     int[] counts = new int[s.length()];
     for (int zi : z) {
       ++counts[zi];
@@ -44,7 +46,85 @@ public class Main {
     return "%d\n%s".formatted(outputs.size(), String.join("\n", outputs));
   }
 
-  static int[] zFunction(String s) {
+  static int[] prefixFunction(String s) {
+    int n = s.length();
+
+    int[] pi = new int[n];
+    for (int i = 1; i < n; ++i) {
+      int j = pi[i - 1];
+      while (j > 0 && s.charAt(i) != s.charAt(j)) {
+        j = pi[j - 1];
+      }
+      if (s.charAt(i) == s.charAt(j)) {
+        ++j;
+      }
+      pi[i] = j;
+    }
+
+    return pi;
+  }
+}
+
+class StringAlgo {
+  static int[] buildSuffixArray(String s) {
+    int n = s.length();
+
+    Integer[] suffixArray = new Integer[n + 1];
+    int[] ranks = new int[n + 1];
+    for (int i = 0; i <= n; ++i) {
+      suffixArray[i] = i;
+      ranks[i] = (i == n) ? -1 : s.charAt(i);
+    }
+
+    for (int k = 1; k <= n; k *= 2) {
+      int[] ranks_ = ranks;
+      int k_ = k;
+      Comparator<Integer> comparator =
+          Comparator.<Integer, Integer>comparing(i -> ranks_[i])
+              .thenComparing(i -> (i + k_ < ranks_.length) ? ranks_[i + k_] : -1);
+
+      Arrays.sort(suffixArray, comparator);
+
+      int[] nextRanks = new int[ranks.length];
+      for (int i = 1; i <= n; ++i) {
+        nextRanks[suffixArray[i]] =
+            nextRanks[suffixArray[i - 1]]
+                + ((comparator.compare(suffixArray[i - 1], suffixArray[i]) == 0) ? 0 : 1);
+      }
+
+      ranks = nextRanks;
+    }
+
+    return Arrays.stream(suffixArray).mapToInt(Integer::intValue).toArray();
+  }
+
+  static int[] buildLcpArray(String s, int[] suffixArray) {
+    int n = s.length();
+
+    int[] ranks = new int[n + 1];
+    for (int i = 0; i <= n; ++i) {
+      ranks[suffixArray[i]] = i;
+    }
+
+    int[] result = new int[n];
+    int h = 0;
+    for (int i = 0; i < n; ++i) {
+      if (h != 0) {
+        --h;
+      }
+
+      int j = suffixArray[ranks[i] - 1];
+      while (j + h < n && i + h < n && s.charAt(j + h) == s.charAt(i + h)) {
+        ++h;
+      }
+
+      result[ranks[i] - 1] = h;
+    }
+
+    return result;
+  }
+
+  static int[] buildZArray(String s) {
     int n = s.length();
 
     int[] z = new int[n];
@@ -64,23 +144,5 @@ public class Main {
     }
 
     return z;
-  }
-
-  static int[] prefixFunction(String s) {
-    int n = s.length();
-
-    int[] pi = new int[n];
-    for (int i = 1; i < n; ++i) {
-      int j = pi[i - 1];
-      while (j > 0 && s.charAt(i) != s.charAt(j)) {
-        j = pi[j - 1];
-      }
-      if (s.charAt(i) == s.charAt(j)) {
-        ++j;
-      }
-      pi[i] = j;
-    }
-
-    return pi;
   }
 }
