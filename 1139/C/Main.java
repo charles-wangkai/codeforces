@@ -1,92 +1,128 @@
+import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
 public class Main {
-    static final int MODULUS = 1_000_000_007;
+  static final ModInt MOD_INT = new ModInt(1_000_000_007);
 
-    public static void main(String[] args) {
-	Scanner sc = new Scanner(System.in);
+  public static void main(String[] args) {
+    Scanner sc = new Scanner(System.in);
 
-	int n = sc.nextInt();
-	int k = sc.nextInt();
-	int[] u = new int[n - 1];
-	int[] v = new int[n - 1];
-	int[] x = new int[n - 1];
-	for (int i = 0; i < n - 1; i++) {
-	    u[i] = sc.nextInt();
-	    v[i] = sc.nextInt();
-	    x[i] = sc.nextInt();
-	}
-	System.out.println(solve(u, v, x, k));
-
-	sc.close();
+    int n = sc.nextInt();
+    int k = sc.nextInt();
+    int[] u = new int[n - 1];
+    int[] v = new int[n - 1];
+    int[] x = new int[n - 1];
+    for (int i = 0; i < n - 1; ++i) {
+      u[i] = sc.nextInt();
+      v[i] = sc.nextInt();
+      x[i] = sc.nextInt();
     }
 
-    static int solve(int[] u, int[] v, int[] x, int k) {
-	int n = u.length + 1;
+    System.out.println(solve(u, v, x, k));
 
-	int[] parents = new int[n];
-	Arrays.fill(parents, -1);
+    sc.close();
+  }
 
-	for (int i = 0; i < x.length; i++) {
-	    if (x[i] == 0) {
-		int root1 = findRoot(parents, u[i] - 1);
-		int root2 = findRoot(parents, v[i] - 1);
+  static int solve(int[] u, int[] v, int[] x, int k) {
+    int n = u.length + 1;
 
-		if (root1 != root2) {
-		    parents[root2] = root1;
-		}
-	    }
-	}
-
-	Map<Integer, Integer> rootToCount = new HashMap<>();
-	for (int i = 0; i < n; i++) {
-	    int root = findRoot(parents, i);
-
-	    rootToCount.put(root, rootToCount.getOrDefault(root, 0) + 1);
-	}
-
-	int result = powMod(n, k);
-	for (int count : rootToCount.values()) {
-	    result = subtractMod(result, powMod(count, k));
-	}
-
-	return result;
+    Dsu dsu = new Dsu(n);
+    for (int i = 0; i < x.length; ++i) {
+      if (x[i] == 0) {
+        dsu.union(u[i] - 1, v[i] - 1);
+      }
     }
 
-    static int findRoot(int[] parents, int node) {
-	int root = node;
-	while (parents[root] != -1) {
-	    root = parents[root];
-	}
-
-	int p = node;
-	while (p != root) {
-	    int next = parents[p];
-	    parents[p] = root;
-
-	    p = next;
-	}
-
-	return root;
+    int result = MOD_INT.powMod(n, k);
+    for (List<Integer> group : dsu.buildLeaderToGroup().values()) {
+      result = MOD_INT.addMod(result, -MOD_INT.powMod(group.size(), k));
     }
 
-    static int powMod(int base, int exponent) {
-	int result = 1;
-	for (int i = 0; i < exponent; i++) {
-	    result = multiplyMod(result, base);
-	}
+    return result;
+  }
+}
 
-	return result;
+class ModInt {
+  int modulus;
+
+  ModInt(int modulus) {
+    this.modulus = modulus;
+  }
+
+  int mod(long x) {
+    return (int) (x % modulus);
+  }
+
+  int modInv(int x) {
+    return BigInteger.valueOf(x).modInverse(BigInteger.valueOf(modulus)).intValue();
+  }
+
+  int addMod(int x, int y) {
+    return Math.floorMod(x + y, modulus);
+  }
+
+  int multiplyMod(int x, int y) {
+    return Math.floorMod((long) x * y, modulus);
+  }
+
+  int divideMod(int x, int y) {
+    return multiplyMod(x, modInv(y));
+  }
+
+  int powMod(int base, int exponent) {
+    if (exponent == 0) {
+      return 1;
     }
 
-    static int subtractMod(int x, int y) {
-	return (x - y + MODULUS) % MODULUS;
+    return multiplyMod(
+        (exponent % 2 == 0) ? 1 : base, powMod(multiplyMod(base, base), exponent / 2));
+  }
+}
+
+class Dsu {
+  int[] parentOrSizes;
+
+  Dsu(int n) {
+    parentOrSizes = new int[n];
+    Arrays.fill(parentOrSizes, -1);
+  }
+
+  int find(int a) {
+    if (parentOrSizes[a] < 0) {
+      return a;
     }
 
-    static int multiplyMod(int x, int y) {
-	return (int) ((long) x * y % MODULUS);
+    parentOrSizes[a] = find(parentOrSizes[a]);
+
+    return parentOrSizes[a];
+  }
+
+  void union(int a, int b) {
+    int aLeader = find(a);
+    int bLeader = find(b);
+    if (aLeader != bLeader) {
+      parentOrSizes[aLeader] += parentOrSizes[bLeader];
+      parentOrSizes[bLeader] = aLeader;
     }
+  }
+
+  int getSize(int a) {
+    return -parentOrSizes[find(a)];
+  }
+
+  Map<Integer, List<Integer>> buildLeaderToGroup() {
+    Map<Integer, List<Integer>> leaderToGroup = new HashMap<>();
+    for (int i = 0; i < parentOrSizes.length; ++i) {
+      int leader = find(i);
+      leaderToGroup.putIfAbsent(leader, new ArrayList<>());
+      leaderToGroup.get(leader).add(i);
+    }
+
+    return leaderToGroup;
+  }
 }
