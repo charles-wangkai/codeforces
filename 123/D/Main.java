@@ -20,7 +20,7 @@ public class Main {
   static long solve(String s) {
     int n = s.length();
 
-    int[] suffixArray = buildSuffixArray(s);
+    int[] suffixArray = StringAlgo.buildSuffixArray(s);
     int[] longestCommonPrefixes = buildLongestCommonPrefixes(s, suffixArray);
 
     long result = n * (n + 1L) / 2;
@@ -68,28 +68,28 @@ public class Main {
 
     return result;
   }
+}
 
+record Element(int height, int length) {}
+
+class StringAlgo {
   static int[] buildSuffixArray(String s) {
     int n = s.length();
 
     Integer[] suffixArray = new Integer[n + 1];
-    final int[] ranks = new int[n + 1];
+    int[] ranks = new int[n + 1];
     for (int i = 0; i <= n; ++i) {
       suffixArray[i] = i;
       ranks[i] = (i == n) ? -1 : s.charAt(i);
     }
 
     for (int k = 1; k <= n; k *= 2) {
-      final int k_ = k;
+      int[] ranks_ = ranks;
+      int k_ = k;
       Comparator<Integer> comparator =
-          (i1, i2) -> {
-            if (ranks[i1] != ranks[i2]) {
-              return ranks[i1] - ranks[i2];
-            }
+          Comparator.<Integer, Integer>comparing(i -> ranks_[i])
+              .thenComparing(i -> (i + k_ < ranks_.length) ? ranks_[i + k_] : -1);
 
-            return ((i1 + k_ < ranks.length) ? ranks[i1 + k_] : -1)
-                - ((i2 + k_ < ranks.length) ? ranks[i2 + k_] : -1);
-          };
       Arrays.sort(suffixArray, comparator);
 
       int[] nextRanks = new int[ranks.length];
@@ -99,18 +99,9 @@ public class Main {
                 + ((comparator.compare(suffixArray[i - 1], suffixArray[i]) == 0) ? 0 : 1);
       }
 
-      for (int i = 0; i < ranks.length; ++i) {
-        ranks[i] = nextRanks[i];
-      }
+      ranks = nextRanks;
     }
 
-    int[] result = new int[suffixArray.length];
-    for (int i = 0; i < result.length; ++i) {
-      result[i] = suffixArray[i];
-    }
-
-    return result;
+    return Arrays.stream(suffixArray).mapToInt(Integer::intValue).toArray();
   }
 }
-
-record Element(int height, int length) {}
