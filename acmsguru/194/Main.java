@@ -36,13 +36,7 @@ public class Main {
   static String solve(int N, int[] u, int[] v, int[] l, int[] c) {
     int M = u.length;
 
-    List<Edge> edges = new ArrayList<>();
-
-    @SuppressWarnings("unchecked")
-    List<Integer>[] edgeLists = new List[N + 2];
-    for (int i = 0; i < edgeLists.length; ++i) {
-      edgeLists[i] = new ArrayList<>();
-    }
+    MaxFlow maxFlow = new MaxFlow(N + 2);
 
     int[] flows = new int[N + 2];
     Map<Integer, Integer> pipeIndexToReversedEdgeIndex = new HashMap<>();
@@ -50,51 +44,64 @@ public class Main {
       flows[u[i]] -= l[i];
       flows[v[i]] += l[i];
 
-      addEdges(edges, edgeLists, u[i], v[i], c[i] - l[i]);
-      pipeIndexToReversedEdgeIndex.put(i, edges.size() - 1);
+      maxFlow.addEdges(u[i], v[i], c[i] - l[i]);
+      pipeIndexToReversedEdgeIndex.put(i, maxFlow.edges.size() - 1);
     }
 
     for (int i = 1; i <= N; ++i) {
       if (flows[i] > 0) {
-        addEdges(edges, edgeLists, 0, i, flows[i]);
+        maxFlow.addEdges(0, i, flows[i]);
         flows[0] += flows[i];
       } else if (flows[i] < 0) {
-        addEdges(edges, edgeLists, i, N + 1, -flows[i]);
+        maxFlow.addEdges(i, N + 1, -flows[i]);
         flows[N + 1] += -flows[i];
       }
     }
 
-    int maxflow = dinic(edges, edgeLists, 0, N + 1);
+    int maxflowValue = maxFlow.dinic(0, N + 1);
 
-    return (maxflow == flows[0])
-        ? String.format(
-            "YES%s%s",
-            System.lineSeparator(),
-            IntStream.range(0, M)
-                .map(i -> l[i] + edges.get(pipeIndexToReversedEdgeIndex.get(i)).capacity)
-                .mapToObj(String::valueOf)
-                .collect(Collectors.joining(System.lineSeparator())))
+    return (maxflowValue == flows[0])
+        ? "YES\n%s"
+            .formatted(
+                IntStream.range(0, M)
+                    .map(
+                        i -> l[i] + maxFlow.edges.get(pipeIndexToReversedEdgeIndex.get(i)).capacity)
+                    .mapToObj(String::valueOf)
+                    .collect(Collectors.joining("\n")))
         : "NO";
   }
+}
 
-  static void addEdges(List<Edge> edges, List<Integer>[] edgeLists, int u, int v, int z) {
-    edges.add(new Edge(u, v, z));
+class MaxFlow {
+  List<Edge> edges = new ArrayList<>();
+  List<Integer>[] edgeLists;
+
+  @SuppressWarnings("unchecked")
+  MaxFlow(int size) {
+    edgeLists = new List[size];
+    for (int i = 0; i < edgeLists.length; ++i) {
+      edgeLists[i] = new ArrayList<>();
+    }
+  }
+
+  void addEdges(int u, int v, int cap) {
+    edges.add(new Edge(u, v, cap));
     edgeLists[u].add(edges.size() - 1);
 
     edges.add(new Edge(v, u, 0));
     edgeLists[v].add(edges.size() - 1);
   }
 
-  static int dinic(List<Edge> edges, List<Integer>[] edgeLists, int s, int t) {
+  int dinic(int s, int t) {
     int result = 0;
     while (true) {
-      int[] levels = bfs(edges, edgeLists, s, t);
+      int[] levels = bfs(s, t);
       if (levels == null) {
         break;
       }
 
       while (true) {
-        int minflow = dfs(edges, edgeLists, levels, s, t, Integer.MAX_VALUE);
+        int minflow = dfs(levels, s, t, Integer.MAX_VALUE);
         if (minflow == 0) {
           break;
         }
@@ -106,7 +113,7 @@ public class Main {
     return result;
   }
 
-  static int[] bfs(List<Edge> edges, List<Integer>[] edgeLists, int s, int t) {
+  private int[] bfs(int s, int t) {
     int[] levels = new int[edgeLists.length];
     Arrays.fill(levels, -1);
     levels[s] = 0;
@@ -132,7 +139,7 @@ public class Main {
     return null;
   }
 
-  static int dfs(List<Edge> edges, List<Integer>[] edgeLists, int[] levels, int s, int t, int low) {
+  private int dfs(int[] levels, int s, int t, int low) {
     if (s == t) {
       return low;
     }
@@ -141,7 +148,7 @@ public class Main {
     for (int e : edgeLists[s]) {
       Edge edge = edges.get(e);
       if (edge.capacity != 0 && levels[edge.to] == levels[s] + 1) {
-        int next = dfs(edges, edgeLists, levels, edge.to, t, Math.min(low - result, edge.capacity));
+        int next = dfs(levels, edge.to, t, Math.min(low - result, edge.capacity));
         edge.capacity -= next;
         edges.get(e ^ 1).capacity += next;
 
@@ -158,16 +165,16 @@ public class Main {
 
     return result;
   }
-}
 
-class Edge {
-  int from;
-  int to;
-  int capacity;
+  static class Edge {
+    int from;
+    int to;
+    int capacity;
 
-  Edge(int from, int to, int capacity) {
-    this.from = from;
-    this.to = to;
-    this.capacity = capacity;
+    Edge(int from, int to, int capacity) {
+      this.from = from;
+      this.to = to;
+      this.capacity = capacity;
+    }
   }
 }
