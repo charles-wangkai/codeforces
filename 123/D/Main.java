@@ -21,12 +21,12 @@ public class Main {
     int n = s.length();
 
     int[] suffixArray = StringAlgo.buildSuffixArray(s);
-    int[] longestCommonPrefixes = buildLongestCommonPrefixes(s, suffixArray);
+    int[] lcpArray = StringAlgo.buildLcpArray(s, suffixArray);
 
     long result = n * (n + 1L) / 2;
     Deque<Element> stack = new ArrayDeque<>();
     long area = 0;
-    for (int height : longestCommonPrefixes) {
+    for (int height : lcpArray) {
       int length = 1;
       while (!stack.isEmpty() && stack.peek().height() > height) {
         Element head = stack.pop();
@@ -38,32 +38,6 @@ public class Main {
       stack.push(new Element(height, length));
       area += (long) height * length;
       result += area;
-    }
-
-    return result;
-  }
-
-  static int[] buildLongestCommonPrefixes(String s, int[] suffixArray) {
-    int n = s.length();
-
-    int[] ranks = new int[n + 1];
-    for (int i = 0; i <= n; ++i) {
-      ranks[suffixArray[i]] = i;
-    }
-
-    int[] result = new int[n];
-    int h = 0;
-    for (int i = 0; i < n; ++i) {
-      if (h != 0) {
-        --h;
-      }
-
-      int j = suffixArray[ranks[i] - 1];
-      while (j + h < n && i + h < n && s.charAt(j + h) == s.charAt(i + h)) {
-        ++h;
-      }
-
-      result[ranks[i] - 1] = h;
     }
 
     return result;
@@ -103,5 +77,31 @@ class StringAlgo {
     }
 
     return Arrays.stream(suffixArray).mapToInt(Integer::intValue).toArray();
+  }
+
+  static int[] buildLcpArray(String s, int[] suffixArray) {
+    int n = s.length();
+
+    int[] ranks = new int[n + 1];
+    for (int i = 0; i <= n; ++i) {
+      ranks[suffixArray[i]] = i;
+    }
+
+    int[] result = new int[n];
+    int h = 0;
+    for (int i = 0; i < n; ++i) {
+      if (h != 0) {
+        --h;
+      }
+
+      int j = suffixArray[ranks[i] - 1];
+      while (j + h < n && i + h < n && s.charAt(j + h) == s.charAt(i + h)) {
+        ++h;
+      }
+
+      result[ranks[i] - 1] = h;
+    }
+
+    return result;
   }
 }
