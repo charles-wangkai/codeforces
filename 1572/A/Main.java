@@ -29,18 +29,14 @@ public class Main {
   static int solve(int[][] a) {
     int n = a.length;
 
-    @SuppressWarnings("unchecked")
-    List<Integer>[] adjLists = new List[n];
-    for (int i = 0; i < adjLists.length; ++i) {
-      adjLists[i] = new ArrayList<>();
-    }
+    Scc scc = new Scc(n);
     for (int i = 0; i < a.length; ++i) {
       for (int aij : a[i]) {
-        adjLists[aij - 1].add(i);
+        scc.addEdge(aij - 1, i);
       }
     }
 
-    List<Integer> sorted = topologicalSort(adjLists);
+    List<Integer> sorted = scc.topologicalSort();
 
     int[] times = new int[n];
     for (int node : sorted) {
@@ -59,15 +55,38 @@ public class Main {
 
     return Arrays.stream(times).max().getAsInt();
   }
+}
 
-  static List<Integer> topologicalSort(List<Integer>[] adjLists) {
+class Scc {
+  List<Integer>[] adjLists;
+  List<Integer>[] reversedAdjLists;
+
+  @SuppressWarnings("unchecked")
+  Scc(int n) {
+    adjLists = new List[n];
+    for (int i = 0; i < adjLists.length; ++i) {
+      adjLists[i] = new ArrayList<>();
+    }
+
+    reversedAdjLists = new List[n];
+    for (int i = 0; i < reversedAdjLists.length; ++i) {
+      reversedAdjLists[i] = new ArrayList<>();
+    }
+  }
+
+  void addEdge(int from, int to) {
+    adjLists[from].add(to);
+    reversedAdjLists[to].add(from);
+  }
+
+  List<Integer> topologicalSort() {
     int n = adjLists.length;
 
     List<Integer> sorted = new ArrayList<>();
     boolean[] visited = new boolean[n];
     for (int i = 0; i < n; ++i) {
       if (!visited[i]) {
-        search(sorted, adjLists, visited, i);
+        search1(sorted, visited, i);
       }
     }
     Collections.reverse(sorted);
@@ -75,15 +94,43 @@ public class Main {
     return sorted;
   }
 
-  static void search(List<Integer> sorted, List<Integer>[] adjLists, boolean[] visited, int node) {
+  private void search1(List<Integer> sorted, boolean[] visited, int node) {
     visited[node] = true;
 
     for (int adj : adjLists[node]) {
       if (!visited[adj]) {
-        search(sorted, adjLists, visited, adj);
+        search1(sorted, visited, adj);
       }
     }
 
     sorted.add(node);
+  }
+
+  int[] buildComponents() {
+    int n = adjLists.length;
+
+    List<Integer> sorted = topologicalSort();
+
+    int[] components = new int[n];
+    Arrays.fill(components, -1);
+    int component = 0;
+    for (int node : sorted) {
+      if (components[node] == -1) {
+        search2(components, node, component);
+        ++component;
+      }
+    }
+
+    return components;
+  }
+
+  private void search2(int[] components, int node, int component) {
+    components[node] = component;
+
+    for (int adj : reversedAdjLists[node]) {
+      if (components[adj] == -1) {
+        search2(components, adj, component);
+      }
+    }
   }
 }
