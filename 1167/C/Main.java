@@ -1,69 +1,85 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Main {
-	public static void main(String[] args) {
-		Scanner sc = new Scanner(System.in);
+  public static void main(String[] args) {
+    Scanner sc = new Scanner(System.in);
 
-		int n = sc.nextInt();
-		int m = sc.nextInt();
-		int[][] groups = new int[m][];
-		for (int i = 0; i < groups.length; i++) {
-			int k = sc.nextInt();
-			groups[i] = new int[k];
-			for (int j = 0; j < groups[i].length; j++) {
-				groups[i][j] = sc.nextInt() - 1;
-			}
-		}
-		System.out.print(solve(n, groups));
+    int n = sc.nextInt();
+    int m = sc.nextInt();
+    int[][] groups = new int[m][];
+    for (int i = 0; i < groups.length; i++) {
+      int k = sc.nextInt();
+      groups[i] = new int[k];
+      for (int j = 0; j < groups[i].length; j++) {
+        groups[i][j] = sc.nextInt() - 1;
+      }
+    }
+    System.out.print(solve(n, groups));
 
-		sc.close();
-	}
+    sc.close();
+  }
 
-	static String solve(int n, int[][] groups) {
-		int[] parents = new int[n];
-		Arrays.fill(parents, -1);
+  static String solve(int n, int[][] groups) {
+    Dsu dsu = new Dsu(n);
+    for (int[] group : groups) {
+      for (int i = 0; i < group.length - 1; i++) {
+        dsu.union(group[i], group[i + 1]);
+      }
+    }
 
-		for (int[] group : groups) {
-			for (int i = 0; i < group.length - 1; i++) {
-				int root1 = findRoot(parents, group[i]);
-				int root2 = findRoot(parents, group[i + 1]);
+    return IntStream.range(0, n)
+        .map(dsu::getSize)
+        .mapToObj(String::valueOf)
+        .collect(Collectors.joining(" "));
+  }
+}
 
-				if (root1 != root2) {
-					parents[root2] = root1;
-				}
-			}
-		}
+class Dsu {
+  int[] parentOrSizes;
 
-		Map<Integer, Integer> rootToSize = new HashMap<>();
-		for (int i = 0; i < n; i++) {
-			int root = findRoot(parents, i);
+  Dsu(int n) {
+    parentOrSizes = new int[n];
+    Arrays.fill(parentOrSizes, -1);
+  }
 
-			rootToSize.put(root, rootToSize.getOrDefault(root, 0) + 1);
-		}
+  int find(int a) {
+    if (parentOrSizes[a] < 0) {
+      return a;
+    }
 
-		return IntStream.range(0, n).mapToObj(i -> String.valueOf(rootToSize.get(findRoot(parents, i))))
-				.collect(Collectors.joining(" "));
-	}
+    parentOrSizes[a] = find(parentOrSizes[a]);
 
-	static int findRoot(int[] parents, int node) {
-		int root = node;
-		while (parents[root] != -1) {
-			root = parents[root];
-		}
+    return parentOrSizes[a];
+  }
 
-		int p = node;
-		while (p != root) {
-			int next = parents[p];
-			parents[p] = root;
+  void union(int a, int b) {
+    int aLeader = find(a);
+    int bLeader = find(b);
+    if (aLeader != bLeader) {
+      parentOrSizes[aLeader] += parentOrSizes[bLeader];
+      parentOrSizes[bLeader] = aLeader;
+    }
+  }
 
-			p = next;
-		}
+  int getSize(int a) {
+    return -parentOrSizes[find(a)];
+  }
 
-		return root;
-	}
+  Map<Integer, List<Integer>> buildLeaderToGroup() {
+    Map<Integer, List<Integer>> leaderToGroup = new HashMap<>();
+    for (int i = 0; i < parentOrSizes.length; ++i) {
+      int leader = find(i);
+      leaderToGroup.putIfAbsent(leader, new ArrayList<>());
+      leaderToGroup.get(leader).add(i);
+    }
+
+    return leaderToGroup;
+  }
 }
