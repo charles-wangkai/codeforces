@@ -25,27 +25,10 @@ public class Main {
     int[] rightCounts = reverse(buildCounts(reverse(a)));
 
     long result = 0;
-    int[] binaryIndexedTree = new int[Integer.highestOneBit(a.length) * 2 + 1];
+    FenwickTree fenwickTree = new FenwickTree(a.length);
     for (int i = 0; i < a.length; ++i) {
-      result += i - computeSum(binaryIndexedTree, rightCounts[i]);
-      add(binaryIndexedTree, leftCounts[i], 1);
-    }
-
-    return result;
-  }
-
-  static void add(int[] binaryIndexedTree, int i, int x) {
-    while (i < binaryIndexedTree.length) {
-      binaryIndexedTree[i] += x;
-      i += i & -i;
-    }
-  }
-
-  static int computeSum(int[] binaryIndexedTree, int i) {
-    int result = 0;
-    while (i != 0) {
-      result += binaryIndexedTree[i];
-      i -= i & -i;
+      result += i - fenwickTree.computePrefixSum(rightCounts[i]);
+      fenwickTree.add(leftCounts[i], 1);
     }
 
     return result;
@@ -61,6 +44,31 @@ public class Main {
     for (int i = 0; i < result.length; ++i) {
       valueToCount.put(x[i], valueToCount.getOrDefault(x[i], 0) + 1);
       result[i] = valueToCount.get(x[i]);
+    }
+
+    return result;
+  }
+}
+
+class FenwickTree {
+  int[] a;
+
+  FenwickTree(int size) {
+    a = new int[Integer.highestOneBit(size) * 2 + 1];
+  }
+
+  void add(int pos, int delta) {
+    while (pos < a.length) {
+      a[pos] += delta;
+      pos += pos & -pos;
+    }
+  }
+
+  int computePrefixSum(int pos) {
+    int result = 0;
+    while (pos != 0) {
+      result += a[pos];
+      pos -= pos & -pos;
     }
 
     return result;
