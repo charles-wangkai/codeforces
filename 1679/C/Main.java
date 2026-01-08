@@ -23,9 +23,9 @@ public class Main {
 
   static String solve(int n, String[] queries) {
     int[] rowCounts = new int[n];
-    int[] rowBinaryIndexedTree = new int[Integer.highestOneBit(n) * 2 + 1];
+    FenwickTree rowFenwickTree = new FenwickTree(n);
     int[] colCounts = new int[n];
-    int[] colBinaryIndexedTree = new int[Integer.highestOneBit(n) * 2 + 1];
+    FenwickTree colFenwickTree = new FenwickTree(n);
 
     List<Boolean> result = new ArrayList<>();
     for (String query : queries) {
@@ -35,12 +35,12 @@ public class Main {
         int y = parts[2];
 
         if (rowCounts[x - 1] == 0) {
-          add(rowBinaryIndexedTree, x, 1);
+          rowFenwickTree.add(x, 1);
         }
         ++rowCounts[x - 1];
 
         if (colCounts[y - 1] == 0) {
-          add(colBinaryIndexedTree, y, 1);
+          colFenwickTree.add(y, 1);
         }
         ++colCounts[y - 1];
       } else if (parts[0] == 2) {
@@ -49,12 +49,12 @@ public class Main {
 
         --rowCounts[x - 1];
         if (rowCounts[x - 1] == 0) {
-          add(rowBinaryIndexedTree, x, -1);
+          rowFenwickTree.add(x, -1);
         }
 
         --colCounts[y - 1];
         if (colCounts[y - 1] == 0) {
-          add(colBinaryIndexedTree, y, -1);
+          colFenwickTree.add(y, -1);
         }
       } else {
         int x1 = parts[1];
@@ -63,28 +63,36 @@ public class Main {
         int y2 = parts[4];
 
         result.add(
-            computeSum(rowBinaryIndexedTree, x2) - computeSum(rowBinaryIndexedTree, x1 - 1)
+            rowFenwickTree.computePrefixSum(x2) - rowFenwickTree.computePrefixSum(x1 - 1)
                     == x2 - x1 + 1
-                || computeSum(colBinaryIndexedTree, y2) - computeSum(colBinaryIndexedTree, y1 - 1)
+                || colFenwickTree.computePrefixSum(y2) - colFenwickTree.computePrefixSum(y1 - 1)
                     == y2 - y1 + 1);
       }
     }
 
     return result.stream().map(x -> x ? "Yes" : "No").collect(Collectors.joining("\n"));
   }
+}
 
-  static void add(int[] binaryIndexedTree, int i, int x) {
-    while (i < binaryIndexedTree.length) {
-      binaryIndexedTree[i] += x;
-      i += i & -i;
+class FenwickTree {
+  int[] a;
+
+  FenwickTree(int size) {
+    a = new int[Integer.highestOneBit(size) * 2 + 1];
+  }
+
+  void add(int pos, int delta) {
+    while (pos < a.length) {
+      a[pos] += delta;
+      pos += pos & -pos;
     }
   }
 
-  static int computeSum(int[] binaryIndexedTree, int i) {
+  int computePrefixSum(int pos) {
     int result = 0;
-    while (i != 0) {
-      result += binaryIndexedTree[i];
-      i -= i & -i;
+    while (pos != 0) {
+      result += a[pos];
+      pos -= pos & -pos;
     }
 
     return result;
