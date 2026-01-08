@@ -1,6 +1,8 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
@@ -32,68 +34,95 @@ public class Main {
   static int solve(int n, int[] u, int[] v, int[] c) {
     Set<Integer> homes = Arrays.stream(c).map(ci -> ci - 1).boxed().collect(Collectors.toSet());
 
-    int[] parents = new int[n];
-    Arrays.fill(parents, -1);
-
+    Dsu dsu = new Dsu(n);
     for (int i = 0; i < u.length; ++i) {
-      int root1 = findRoot(parents, u[i] - 1);
-      int root2 = findRoot(parents, v[i] - 1);
-      if (root1 != root2) {
-        if (homes.contains(root1)) {
-          parents[root2] = root1;
+      int leader1 = dsu.find(u[i] - 1);
+      int leader2 = dsu.find(v[i] - 1);
+      if (leader1 != leader2) {
+        if (homes.contains(leader1)) {
+          dsu.union(leader1, leader2);
         } else {
-          parents[root1] = root2;
+          dsu.union(leader2, leader1);
         }
       }
     }
 
-    int homeWithMaxSize = findHomeWithMaxSize(homes, parents);
+    int homeWithMaxSize = findHomeWithMaxSize(homes, dsu);
     for (int i = 0; i < n; ++i) {
-      int root = findRoot(parents, i);
-      if (!homes.contains(root)) {
-        parents[root] = homeWithMaxSize;
+      int leader = dsu.find(i);
+      if (!homes.contains(leader)) {
+        dsu.union(homeWithMaxSize, leader);
       }
     }
 
     Map<Integer, Integer> homeToEdgeCount = new HashMap<>();
     for (int i = 0; i < u.length; ++i) {
-      int home = findRoot(parents, u[i] - 1);
+      int home = dsu.find(u[i] - 1);
       homeToEdgeCount.put(home, homeToEdgeCount.getOrDefault(home, 0) + 1);
     }
 
-    Map<Integer, Integer> homeToSize = new HashMap<>();
-    for (int i = 0; i < parents.length; ++i) {
-      int root = findRoot(parents, i);
-      homeToSize.put(root, homeToSize.getOrDefault(root, 0) + 1);
-    }
+    Map<Integer, List<Integer>> homeToGroup = dsu.buildLeaderToGroup();
 
-    return homeToSize.keySet().stream()
+    return homeToGroup.keySet().stream()
         .mapToInt(
             home ->
-                homeToSize.get(home) * (homeToSize.get(home) - 1) / 2
+                homeToGroup.get(home).size() * (homeToGroup.get(home).size() - 1) / 2
                     - homeToEdgeCount.getOrDefault(home, 0))
         .sum();
   }
 
-  static int findHomeWithMaxSize(Set<Integer> homes, int[] parents) {
+  static int findHomeWithMaxSize(Set<Integer> homes, Dsu dsu) {
     Map<Integer, Integer> homeToSize = new HashMap<>();
-    for (int i = 0; i < parents.length; ++i) {
-      int root = findRoot(parents, i);
-      if (homes.contains(root)) {
-        homeToSize.put(root, homeToSize.getOrDefault(root, 0) + 1);
+    for (int i = 0; i < dsu.parentOrSizes.length; ++i) {
+      int leader = dsu.find(i);
+      if (homes.contains(leader)) {
+        homeToSize.put(leader, homeToSize.getOrDefault(leader, 0) + 1);
       }
     }
 
     return homeToSize.keySet().stream().max(Comparator.comparing(homeToSize::get)).get();
   }
+}
 
-  static int findRoot(int[] parents, int node) {
-    if (parents[node] == -1) {
-      return node;
+class Dsu {
+  int[] parentOrSizes;
+
+  Dsu(int n) {
+    parentOrSizes = new int[n];
+    Arrays.fill(parentOrSizes, -1);
+  }
+
+  int find(int a) {
+    if (parentOrSizes[a] < 0) {
+      return a;
     }
 
-    parents[node] = findRoot(parents, parents[node]);
+    parentOrSizes[a] = find(parentOrSizes[a]);
 
-    return parents[node];
+    return parentOrSizes[a];
+  }
+
+  void union(int a, int b) {
+    int aLeader = find(a);
+    int bLeader = find(b);
+    if (aLeader != bLeader) {
+      parentOrSizes[aLeader] += parentOrSizes[bLeader];
+      parentOrSizes[bLeader] = aLeader;
+    }
+  }
+
+  int getSize(int a) {
+    return -parentOrSizes[find(a)];
+  }
+
+  Map<Integer, List<Integer>> buildLeaderToGroup() {
+    Map<Integer, List<Integer>> leaderToGroup = new HashMap<>();
+    for (int i = 0; i < parentOrSizes.length; ++i) {
+      int leader = find(i);
+      leaderToGroup.putIfAbsent(leader, new ArrayList<>());
+      leaderToGroup.get(leader).add(i);
+    }
+
+    return leaderToGroup;
   }
 }
