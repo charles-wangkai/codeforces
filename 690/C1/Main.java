@@ -1,6 +1,9 @@
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
-import java.util.stream.IntStream;
 
 public class Main {
   public static void main(String[] args) {
@@ -21,29 +24,60 @@ public class Main {
   }
 
   static boolean solve(int n, int[] a, int[] b) {
-    int[] parents = new int[n];
-    Arrays.fill(parents, -1);
-
+    Dsu dsu = new Dsu(n);
     for (int i = 0; i < a.length; ++i) {
-      int root1 = findRoot(parents, a[i] - 1);
-      int root2 = findRoot(parents, b[i] - 1);
-      if (root1 == root2) {
+      int leader1 = dsu.find(a[i] - 1);
+      int leader2 = dsu.find(b[i] - 1);
+      if (leader1 == leader2) {
         return false;
       }
 
-      parents[root2] = root1;
+      dsu.union(leader1, leader2);
     }
 
-    return IntStream.range(0, n).map(i -> findRoot(parents, i)).distinct().count() == 1;
+    return dsu.buildLeaderToGroup().size() == 1;
+  }
+}
+
+class Dsu {
+  int[] parentOrSizes;
+
+  Dsu(int n) {
+    parentOrSizes = new int[n];
+    Arrays.fill(parentOrSizes, -1);
   }
 
-  static int findRoot(int[] parents, int node) {
-    if (parents[node] == -1) {
-      return node;
+  int find(int a) {
+    if (parentOrSizes[a] < 0) {
+      return a;
     }
 
-    parents[node] = findRoot(parents, parents[node]);
+    parentOrSizes[a] = find(parentOrSizes[a]);
 
-    return parents[node];
+    return parentOrSizes[a];
+  }
+
+  void union(int a, int b) {
+    int aLeader = find(a);
+    int bLeader = find(b);
+    if (aLeader != bLeader) {
+      parentOrSizes[aLeader] += parentOrSizes[bLeader];
+      parentOrSizes[bLeader] = aLeader;
+    }
+  }
+
+  int getSize(int a) {
+    return -parentOrSizes[find(a)];
+  }
+
+  Map<Integer, List<Integer>> buildLeaderToGroup() {
+    Map<Integer, List<Integer>> leaderToGroup = new HashMap<>();
+    for (int i = 0; i < parentOrSizes.length; ++i) {
+      int leader = find(i);
+      leaderToGroup.putIfAbsent(leader, new ArrayList<>());
+      leaderToGroup.get(leader).add(i);
+    }
+
+    return leaderToGroup;
   }
 }
