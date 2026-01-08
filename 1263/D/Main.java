@@ -1,7 +1,11 @@
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Scanner;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Main {
   public static void main(String[] args) {
@@ -18,43 +22,66 @@ public class Main {
   }
 
   static int solve(String[] s) {
-    Map<Character, Character> letterToParent = new HashMap<>();
-    for (String si : s) {
-      for (char letter : si.toCharArray()) {
-        if (!letterToParent.containsKey(letter)) {
-          letterToParent.put(letter, null);
-        }
-      }
-    }
+    Character[] letters =
+        Arrays.stream(s)
+            .flatMap(si -> si.chars().mapToObj(c -> (char) c))
+            .distinct()
+            .toArray(Character[]::new);
+    Map<Character, Integer> letterToIndex =
+        IntStream.range(0, letters.length)
+            .boxed()
+            .collect(Collectors.toMap(i -> letters[i], i -> i));
 
+    Dsu dsu = new Dsu(letters.length);
     for (String si : s) {
       for (int i = 0; i < si.length() - 1; ++i) {
-        char root1 = findRoot(letterToParent, si.charAt(i));
-        char root2 = findRoot(letterToParent, si.charAt(i + 1));
-
-        if (root1 != root2) {
-          letterToParent.put(root2, root1);
-        }
+        dsu.union(letterToIndex.get(si.charAt(i)), letterToIndex.get(si.charAt(i + 1)));
       }
     }
 
-    return (int) letterToParent.values().stream().filter(Objects::isNull).count();
+    return dsu.buildLeaderToGroup().size();
+  }
+}
+
+class Dsu {
+  int[] parentOrSizes;
+
+  Dsu(int n) {
+    parentOrSizes = new int[n];
+    Arrays.fill(parentOrSizes, -1);
   }
 
-  static char findRoot(Map<Character, Character> letterToParent, char letter) {
-    char root = letter;
-    while (letterToParent.get(root) != null) {
-      root = letterToParent.get(root);
+  int find(int a) {
+    if (parentOrSizes[a] < 0) {
+      return a;
     }
 
-    char p = letter;
-    while (p != root) {
-      char next = letterToParent.get(p);
-      letterToParent.put(p, root);
+    parentOrSizes[a] = find(parentOrSizes[a]);
 
-      p = next;
+    return parentOrSizes[a];
+  }
+
+  void union(int a, int b) {
+    int aLeader = find(a);
+    int bLeader = find(b);
+    if (aLeader != bLeader) {
+      parentOrSizes[aLeader] += parentOrSizes[bLeader];
+      parentOrSizes[bLeader] = aLeader;
+    }
+  }
+
+  int getSize(int a) {
+    return -parentOrSizes[find(a)];
+  }
+
+  Map<Integer, List<Integer>> buildLeaderToGroup() {
+    Map<Integer, List<Integer>> leaderToGroup = new HashMap<>();
+    for (int i = 0; i < parentOrSizes.length; ++i) {
+      int leader = find(i);
+      leaderToGroup.putIfAbsent(leader, new ArrayList<>());
+      leaderToGroup.get(leader).add(i);
     }
 
-    return root;
+    return leaderToGroup;
   }
 }
