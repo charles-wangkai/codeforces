@@ -34,20 +34,19 @@ public class Main {
       letterToIndices.get(t.charAt(i)).add(i);
     }
 
-    Map<Character, int[]> letterToBinaryIndexedTree = new HashMap<>();
+    Map<Character, FenwickTree> letterToFenwickTree = new HashMap<>();
     for (char letter : letterToIndices.keySet()) {
-      letterToBinaryIndexedTree.put(
-          letter, new int[Integer.highestOneBit(letterToIndices.get(letter).size()) * 2 + 1]);
+      letterToFenwickTree.put(letter, new FenwickTree(letterToIndices.get(letter).size()));
     }
 
     boolean[] deleted = new boolean[t.length()];
     for (int i = 0; i < p.length; ++i) {
       List<Integer> indices = letterToIndices.get(c[i]);
-      int[] binaryIndexedTree = letterToBinaryIndexedTree.get(c[i]);
+      FenwickTree fenwickTree = letterToFenwickTree.get(c[i]);
 
-      int pos = find(binaryIndexedTree, indices.size(), p[i] - 1);
+      int pos = find(fenwickTree, indices.size(), p[i] - 1);
       deleted[indices.get(pos)] = true;
-      add(binaryIndexedTree, pos + 1, 1);
+      fenwickTree.add(pos + 1, 1);
     }
 
     return IntStream.range(0, deleted.length)
@@ -57,13 +56,13 @@ public class Main {
         .collect(Collectors.joining());
   }
 
-  static int find(int[] binaryIndexedTree, int size, int index) {
+  static int find(FenwickTree fenwickTree, int size, int index) {
     int result = -1;
     int lower = 0;
     int upper = size - 1;
     while (lower <= upper) {
       int middle = (lower + upper) / 2;
-      if (middle - computeSum(binaryIndexedTree, middle) <= index) {
+      if (middle - fenwickTree.computePrefixSum(middle) <= index) {
         result = middle;
         lower = middle + 1;
       } else {
@@ -73,19 +72,27 @@ public class Main {
 
     return result;
   }
+}
 
-  static void add(int[] binaryIndexedTree, int i, int x) {
-    while (i < binaryIndexedTree.length) {
-      binaryIndexedTree[i] += x;
-      i += i & -i;
+class FenwickTree {
+  int[] a;
+
+  FenwickTree(int size) {
+    a = new int[Integer.highestOneBit(size) * 2 + 1];
+  }
+
+  void add(int pos, int delta) {
+    while (pos < a.length) {
+      a[pos] += delta;
+      pos += pos & -pos;
     }
   }
 
-  static int computeSum(int[] binaryIndexedTree, int i) {
+  int computePrefixSum(int pos) {
     int result = 0;
-    while (i != 0) {
-      result += binaryIndexedTree[i];
-      i -= i & -i;
+    while (pos != 0) {
+      result += a[pos];
+      pos -= pos & -pos;
     }
 
     return result;
