@@ -1,6 +1,8 @@
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class Main {
@@ -29,52 +31,77 @@ public class Main {
   }
 
   static String solve(int n, int[] u1, int[] v1, int[] u2, int[] v2) {
-    int[] parents1 = buildParents(n, u1, v1);
-    int[] parents2 = buildParents(n, u2, v2);
+    Dsu dsu1 = buildDsu(n, u1, v1);
+    Dsu dsu2 = buildDsu(n, u2, v2);
 
     List<String> addedEdges = new ArrayList<>();
     for (int i = 0; i < n; ++i) {
       for (int j = i + 1; j < n; ++j) {
-        int iRoot1 = findRoot(parents1, i);
-        int jRoot1 = findRoot(parents1, j);
-        int iRoot2 = findRoot(parents2, i);
-        int jRoot2 = findRoot(parents2, j);
-        if (iRoot1 != jRoot1 && iRoot2 != jRoot2) {
-          parents1[jRoot1] = iRoot1;
-          parents2[jRoot2] = iRoot2;
+        int iLeader1 = dsu1.find(i);
+        int jLeader1 = dsu1.find(j);
+        int iLeader2 = dsu2.find(i);
+        int jLeader2 = dsu2.find(j);
+        if (iLeader1 != jLeader1 && iLeader2 != jLeader2) {
+          dsu1.union(iLeader1, jLeader1);
+          dsu2.union(iLeader2, jLeader2);
 
-          addedEdges.add(String.format("%d %d", i + 1, j + 1));
+          addedEdges.add("%d %d".formatted(i + 1, j + 1));
         }
       }
     }
 
-    return String.format("%d\n%s", addedEdges.size(), String.join("\n", addedEdges));
+    return "%d\n%s".formatted(addedEdges.size(), String.join("\n", addedEdges));
   }
 
-  static int[] buildParents(int n, int[] u, int[] v) {
-    int[] parents = new int[n];
-    Arrays.fill(parents, -1);
+  static Dsu buildDsu(int n, int[] u, int[] v) {
+    Dsu dsu = new Dsu(n);
     for (int i = 0; i < u.length; ++i) {
-      parents[findRoot(parents, v[i])] = findRoot(parents, u[i]);
+      dsu.union(u[i], v[i]);
     }
 
-    return parents;
+    return dsu;
+  }
+}
+
+class Dsu {
+  int[] parentOrSizes;
+
+  Dsu(int n) {
+    parentOrSizes = new int[n];
+    Arrays.fill(parentOrSizes, -1);
   }
 
-  static int findRoot(int[] parents, int node) {
-    int root = node;
-    while (parents[root] != -1) {
-      root = parents[root];
+  int find(int a) {
+    if (parentOrSizes[a] < 0) {
+      return a;
     }
 
-    int p = node;
-    while (p != root) {
-      int next = parents[p];
-      parents[p] = root;
+    parentOrSizes[a] = find(parentOrSizes[a]);
 
-      p = next;
+    return parentOrSizes[a];
+  }
+
+  void union(int a, int b) {
+    int aLeader = find(a);
+    int bLeader = find(b);
+    if (aLeader != bLeader) {
+      parentOrSizes[aLeader] += parentOrSizes[bLeader];
+      parentOrSizes[bLeader] = aLeader;
+    }
+  }
+
+  int getSize(int a) {
+    return -parentOrSizes[find(a)];
+  }
+
+  Map<Integer, List<Integer>> buildLeaderToGroup() {
+    Map<Integer, List<Integer>> leaderToGroup = new HashMap<>();
+    for (int i = 0; i < parentOrSizes.length; ++i) {
+      int leader = find(i);
+      leaderToGroup.putIfAbsent(leader, new ArrayList<>());
+      leaderToGroup.get(leader).add(i);
     }
 
-    return root;
+    return leaderToGroup;
   }
 }
