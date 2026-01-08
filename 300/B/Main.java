@@ -27,23 +27,9 @@ public class Main {
   }
 
   static String solve(int n, int[] a, int[] b) {
-    int[] parents = new int[n];
-    Arrays.fill(parents, -1);
-
+    Dsu dsu = new Dsu(n);
     for (int i = 0; i < a.length; ++i) {
-      int root1 = findRoot(parents, a[i] - 1);
-      int root2 = findRoot(parents, b[i] - 1);
-      if (root1 != root2) {
-        parents[root2] = root1;
-      }
-    }
-
-    Map<Integer, List<Integer>> rootToGroup = new HashMap<>();
-    for (int i = 0; i < n; ++i) {
-      int root = findRoot(parents, i);
-
-      rootToGroup.putIfAbsent(root, new ArrayList<>());
-      rootToGroup.get(root).add(i);
+      dsu.union(a[i] - 1, b[i] - 1);
     }
 
     @SuppressWarnings("unchecked")
@@ -52,7 +38,7 @@ public class Main {
       groupQueues[i] = new ArrayDeque<>();
     }
 
-    for (List<Integer> group : rootToGroup.values()) {
+    for (List<Integer> group : dsu.buildLeaderToGroup().values()) {
       if (group.size() > 3) {
         return "-1";
       }
@@ -93,14 +79,47 @@ public class Main {
                 team.stream().map(x -> x + 1).map(String::valueOf).collect(Collectors.joining(" ")))
         .collect(Collectors.joining("\n"));
   }
+}
 
-  static int findRoot(int[] parents, int node) {
-    if (parents[node] == -1) {
-      return node;
+class Dsu {
+  int[] parentOrSizes;
+
+  Dsu(int n) {
+    parentOrSizes = new int[n];
+    Arrays.fill(parentOrSizes, -1);
+  }
+
+  int find(int a) {
+    if (parentOrSizes[a] < 0) {
+      return a;
     }
 
-    parents[node] = findRoot(parents, parents[node]);
+    parentOrSizes[a] = find(parentOrSizes[a]);
 
-    return parents[node];
+    return parentOrSizes[a];
+  }
+
+  void union(int a, int b) {
+    int aLeader = find(a);
+    int bLeader = find(b);
+    if (aLeader != bLeader) {
+      parentOrSizes[aLeader] += parentOrSizes[bLeader];
+      parentOrSizes[bLeader] = aLeader;
+    }
+  }
+
+  int getSize(int a) {
+    return -parentOrSizes[find(a)];
+  }
+
+  Map<Integer, List<Integer>> buildLeaderToGroup() {
+    Map<Integer, List<Integer>> leaderToGroup = new HashMap<>();
+    for (int i = 0; i < parentOrSizes.length; ++i) {
+      int leader = find(i);
+      leaderToGroup.putIfAbsent(leader, new ArrayList<>());
+      leaderToGroup.get(leader).add(i);
+    }
+
+    return leaderToGroup;
   }
 }
