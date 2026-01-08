@@ -44,10 +44,10 @@ public class Main {
 
   static int[] buildRightSmallerNums(int[] values) {
     int[] result = new int[values.length];
-    int[] binaryIndexedTree = new int[Integer.highestOneBit(values.length) * 2 + 1];
+    FenwickTree fenwickTree = new FenwickTree(values.length);
     for (int i = result.length - 1; i >= 0; --i) {
-      result[i] = computeSum(binaryIndexedTree, values[i]);
-      add(binaryIndexedTree, values[i], 1);
+      result[i] = fenwickTree.computePrefixSum(values[i]);
+      fenwickTree.add(values[i], 1);
     }
 
     return result;
@@ -56,19 +56,27 @@ public class Main {
   static int[] reverse(int[] values) {
     return IntStream.range(0, values.length).map(i -> values[values.length - 1 - i]).toArray();
   }
+}
 
-  static void add(int[] binaryIndexedTree, int i, int x) {
-    while (i < binaryIndexedTree.length) {
-      binaryIndexedTree[i] += x;
-      i += i & -i;
+class FenwickTree {
+  int[] a;
+
+  FenwickTree(int size) {
+    a = new int[Integer.highestOneBit(size) * 2 + 1];
+  }
+
+  void add(int pos, int delta) {
+    while (pos < a.length) {
+      a[pos] += delta;
+      pos += pos & -pos;
     }
   }
 
-  static int computeSum(int[] binaryIndexedTree, int i) {
+  int computePrefixSum(int pos) {
     int result = 0;
-    while (i != 0) {
-      result += binaryIndexedTree[i];
-      i -= i & -i;
+    while (pos != 0) {
+      result += a[pos];
+      pos -= pos & -pos;
     }
 
     return result;
