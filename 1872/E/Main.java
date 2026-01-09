@@ -30,75 +30,103 @@ public class Main {
   }
 
   static String solve(int[] a, String s, String[] queries) {
-    Node segmentTree = buildSegmentTree(a, s, 0, a.length - 1);
-
     List<Integer> result = new ArrayList<>();
+    LazySegTree lazySegTree = new LazySegTree(s, a);
     for (String query : queries) {
-      int[] parts = Arrays.stream(query.split(" ")).mapToInt(Integer::parseInt).toArray();
-      if (parts[0] == 1) {
-        update(parts[1] - 1, parts[2] - 1, segmentTree);
+      int[] fields = Arrays.stream(query.split(" ")).mapToInt(Integer::parseInt).toArray();
+      if (fields[0] == 1) {
+        int l = fields[1];
+        int r = fields[2];
+
+        lazySegTree.update(l - 1, r - 1);
       } else {
-        result.add(segmentTree.getXor(parts[1]));
+        int g = fields[1];
+
+        result.add(lazySegTree.root.getComputedXor(g));
       }
     }
 
     return result.stream().map(String::valueOf).collect(Collectors.joining(" "));
   }
+}
 
-  static void update(int beginIndex, int endIndex, Node node) {
-    if (!(node.beginIndex > endIndex || node.endIndex < beginIndex)) {
-      if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
-        node.flipped ^= true;
-      } else {
-        if (node.flipped) {
-          node.flipped = false;
-          node.left.flipped ^= true;
-          node.right.flipped ^= true;
-        }
+class LazySegTree {
+  Node root;
 
-        update(beginIndex, endIndex, node.left);
-        update(beginIndex, endIndex, node.right);
-
-        for (int i = 0; i < node.xors.length; ++i) {
-          node.xors[i] = node.left.getXor(i) ^ node.right.getXor(i);
-        }
-      }
-    }
+  LazySegTree(String s, int[] values) {
+    root = buildNode(s, values, 0, values.length - 1);
   }
 
-  static Node buildSegmentTree(int[] a, String s, int beginIndex, int endIndex) {
-    Node node = new Node(beginIndex, endIndex);
+  private Node buildNode(String s, int[] values, int beginIndex, int endIndex) {
+    Node node = new Node(beginIndex, endIndex, false);
+
     if (beginIndex == endIndex) {
-      node.xors[s.charAt(beginIndex) - '0'] = a[beginIndex];
+      node.xors[s.charAt(beginIndex) - '0'] = values[beginIndex];
     } else {
       int middleIndex = (beginIndex + endIndex) / 2;
+      node.left = buildNode(s, values, beginIndex, middleIndex);
+      node.right = buildNode(s, values, middleIndex + 1, endIndex);
 
-      node.left = buildSegmentTree(a, s, beginIndex, middleIndex);
-      node.right = buildSegmentTree(a, s, middleIndex + 1, endIndex);
-
-      for (int i = 0; i < node.xors.length; ++i) {
-        node.xors[i] = node.left.xors[i] ^ node.right.xors[i];
-      }
+      node.pull();
     }
 
     return node;
   }
-}
 
-class Node {
-  int beginIndex;
-  int endIndex;
-  int[] xors = new int[2];
-  boolean flipped;
-  Node left;
-  Node right;
-
-  Node(int beginIndex, int endIndex) {
-    this.beginIndex = beginIndex;
-    this.endIndex = endIndex;
+  void update(int beginIndex, int endIndex) {
+    update(beginIndex, endIndex, root);
   }
 
-  int getXor(int b) {
-    return flipped ? xors[1 - b] : xors[b];
+  private void update(int beginIndex, int endIndex, Node node) {
+    if (!(node.beginIndex > endIndex || node.endIndex < beginIndex)) {
+      if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
+        node.apply();
+      } else {
+        node.pushDown();
+
+        update(beginIndex, endIndex, node.left);
+        update(beginIndex, endIndex, node.right);
+
+        node.pull();
+      }
+    }
+  }
+
+  static class Node {
+    int beginIndex;
+    int endIndex;
+    boolean flipped;
+    int[] xors = new int[2];
+    Node left;
+    Node right;
+
+    Node(int beginIndex, int endIndex, boolean flipped) {
+      this.beginIndex = beginIndex;
+      this.endIndex = endIndex;
+      this.flipped = flipped;
+    }
+
+    int getComputedXor(int b) {
+      return flipped ? xors[1 - b] : xors[b];
+    }
+
+    void pushDown() {
+      if (flipped) {
+        left.apply();
+        right.apply();
+
+        flipped = false;
+      }
+    }
+
+    void apply() {
+      flipped ^= true;
+    }
+
+    void pull() {
+      for (int i = 0; i < xors.length; ++i) {
+        xors[i] = left.getComputedXor(i) ^ right.getComputedXor(i);
+      }
+    }
   }
 }
