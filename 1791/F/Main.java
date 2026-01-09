@@ -29,16 +29,15 @@ public class Main {
   }
 
   static String solve(int[] a, String[] queries) {
-    Node tree = buildNode(0, a.length - 1);
-
     List<Integer> result = new ArrayList<>();
+    LazySegTree lazySegTree = new LazySegTree(a.length);
     for (String query : queries) {
       int[] fields = Arrays.stream(query.split(" ")).mapToInt(Integer::parseInt).toArray();
       if (fields[0] == 1) {
-        update(fields[1] - 1, fields[2] - 1, tree);
+        lazySegTree.update(fields[1] - 1, fields[2] - 1);
       } else {
         int index = fields[1] - 1;
-        result.add(computeValue(a[index], inquire(index, tree)));
+        result.add(computeValue(a[index], lazySegTree.query(index, index)));
       }
     }
 
@@ -50,29 +49,18 @@ public class Main {
         ? x
         : computeValue(String.valueOf(x).chars().map(c -> c - '0').sum(), count - 1);
   }
+}
 
-  static int inquire(int index, Node node) {
-    if (node.beginIndex == node.endIndex) {
-      return node.count;
-    }
+class LazySegTree {
+  Node root;
 
-    return node.count
-        + ((index <= node.left.endIndex) ? inquire(index, node.left) : inquire(index, node.right));
+  LazySegTree(int n) {
+    root = buildNode(0, n - 1);
   }
 
-  static void update(int beginIndex, int endIndex, Node node) {
-    if (!(node.endIndex < beginIndex || node.beginIndex > endIndex)) {
-      if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
-        ++node.count;
-      } else {
-        update(beginIndex, endIndex, node.left);
-        update(beginIndex, endIndex, node.right);
-      }
-    }
-  }
+  private Node buildNode(int beginIndex, int endIndex) {
+    Node node = new Node(beginIndex, endIndex, 0);
 
-  static Node buildNode(int beginIndex, int endIndex) {
-    Node node = new Node(beginIndex, endIndex);
     if (beginIndex != endIndex) {
       int middleIndex = (beginIndex + endIndex) / 2;
       node.left = buildNode(beginIndex, middleIndex);
@@ -81,17 +69,65 @@ public class Main {
 
     return node;
   }
-}
 
-class Node {
-  int beginIndex;
-  int endIndex;
-  int count;
-  Node left;
-  Node right;
+  void update(int beginIndex, int endIndex) {
+    update(beginIndex, endIndex, root);
+  }
 
-  Node(int beginIndex, int endIndex) {
-    this.beginIndex = beginIndex;
-    this.endIndex = endIndex;
+  private void update(int beginIndex, int endIndex, Node node) {
+    if (!(node.beginIndex > endIndex || node.endIndex < beginIndex)) {
+      if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
+        node.apply(1);
+      } else {
+        node.pushDown();
+
+        update(beginIndex, endIndex, node.left);
+        update(beginIndex, endIndex, node.right);
+      }
+    }
+  }
+
+  int query(int beginIndex, int endIndex) {
+    return query(beginIndex, endIndex, root);
+  }
+
+  private int query(int beginIndex, int endIndex, Node node) {
+    if (node.beginIndex > endIndex || node.endIndex < beginIndex) {
+      return 0;
+    }
+    if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
+      return node.count;
+    }
+
+    node.pushDown();
+
+    return query(beginIndex, endIndex, node.left) + query(beginIndex, endIndex, node.right);
+  }
+
+  static class Node {
+    int beginIndex;
+    int endIndex;
+    int count;
+    Node left;
+    Node right;
+
+    Node(int beginIndex, int endIndex, int count) {
+      this.beginIndex = beginIndex;
+      this.endIndex = endIndex;
+      this.count = count;
+    }
+
+    void pushDown() {
+      if (count != 0) {
+        left.apply(count);
+        right.apply(count);
+
+        count = 0;
+      }
+    }
+
+    void apply(int d) {
+      count += d;
+    }
   }
 }
