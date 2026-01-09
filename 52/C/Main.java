@@ -26,9 +26,8 @@ public class Main {
   }
 
   static String solve(int[] a, String[] operations) {
-    Node segmentTree = buildNode(a, 0, a.length - 1);
-
     List<Long> result = new ArrayList<>();
+    LazySegTree lazySegTree = new LazySegTree(a);
     for (String operation : operations) {
       int[] fields = Arrays.stream(operation.split(" ")).mapToInt(Integer::parseInt).toArray();
       int left = fields[0];
@@ -38,92 +37,117 @@ public class Main {
         int v = fields[2];
 
         if (left <= right) {
-          updateSegmentTree(left, right, v, segmentTree);
+          lazySegTree.update(left, right, v);
         } else {
-          updateSegmentTree(left, a.length - 1, v, segmentTree);
-          updateSegmentTree(0, right, v, segmentTree);
+          lazySegTree.update(left, a.length - 1, v);
+          lazySegTree.update(0, right, v);
         }
       } else if (left <= right) {
-        result.add(querySegmentTree(left, right, segmentTree));
+        result.add(lazySegTree.query(left, right));
       } else {
-        result.add(
-            Math.min(
-                querySegmentTree(left, a.length - 1, segmentTree),
-                querySegmentTree(0, right, segmentTree)));
+        result.add(Math.min(lazySegTree.query(left, a.length - 1), lazySegTree.query(0, right)));
       }
     }
 
     return result.stream().map(String::valueOf).collect(Collectors.joining("\n"));
   }
+}
 
-  static void updateSegmentTree(int beginIndex, int endIndex, int delta, Node node) {
+class LazySegTree {
+  Node root;
+
+  LazySegTree(int[] values) {
+    root = buildNode(values, 0, values.length - 1);
+  }
+
+  private Node buildNode(int[] values, int beginIndex, int endIndex) {
+    Node node = new Node(beginIndex, endIndex, 0);
+
+    if (beginIndex == endIndex) {
+      node.minValue = values[beginIndex];
+    } else {
+      int middleIndex = (beginIndex + endIndex) / 2;
+      node.left = buildNode(values, beginIndex, middleIndex);
+      node.right = buildNode(values, middleIndex + 1, endIndex);
+
+      node.pull();
+    }
+
+    return node;
+  }
+
+  void update(int beginIndex, int endIndex, int delta) {
+    update(beginIndex, endIndex, delta, root);
+  }
+
+  private void update(int beginIndex, int endIndex, int delta, Node node) {
     if (!(node.beginIndex > endIndex || node.endIndex < beginIndex)) {
       if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
-        node.delta += delta;
+        node.apply(delta);
       } else {
-        if (node.delta != 0) {
-          node.left.delta += node.delta;
-          node.right.delta += node.delta;
-          node.delta = 0;
-        }
+        node.pushDown();
 
-        updateSegmentTree(beginIndex, endIndex, delta, node.left);
-        updateSegmentTree(beginIndex, endIndex, delta, node.right);
+        update(beginIndex, endIndex, delta, node.left);
+        update(beginIndex, endIndex, delta, node.right);
 
-        node.minValue =
-            Math.min(node.left.delta + node.left.minValue, node.right.delta + node.right.minValue);
+        node.pull();
       }
     }
   }
 
-  static long querySegmentTree(int beginIndex, int endIndex, Node node) {
+  long query(int beginIndex, int endIndex) {
+    return query(beginIndex, endIndex, root);
+  }
+
+  private long query(int beginIndex, int endIndex, Node node) {
     if (node.beginIndex > endIndex || node.endIndex < beginIndex) {
       return Long.MAX_VALUE;
     }
-
     if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
-      return node.delta + node.minValue;
+      return node.getComputedMinValue();
     }
 
-    if (node.delta != 0) {
-      node.left.delta += node.delta;
-      node.right.delta += node.delta;
-      node.minValue += node.delta;
-      node.delta = 0;
-    }
+    node.pushDown();
+
+    node.pull();
 
     return Math.min(
-        querySegmentTree(beginIndex, endIndex, node.left),
-        querySegmentTree(beginIndex, endIndex, node.right));
+        query(beginIndex, endIndex, node.left), query(beginIndex, endIndex, node.right));
   }
 
-  static Node buildNode(int[] a, int beginIndex, int endIndex) {
-    if (beginIndex == endIndex) {
-      return new Node(beginIndex, endIndex, 0, a[beginIndex], null, null);
+  static class Node {
+    int beginIndex;
+    int endIndex;
+    long delta;
+    long minValue;
+    Node left;
+    Node right;
+
+    Node(int beginIndex, int endIndex, long delta) {
+      this.beginIndex = beginIndex;
+      this.endIndex = endIndex;
+      this.delta = delta;
     }
 
-    int middleIndex = (beginIndex + endIndex) / 2;
-    Node left = buildNode(a, beginIndex, middleIndex);
-    Node right = buildNode(a, middleIndex + 1, endIndex);
+    long getComputedMinValue() {
+      return minValue + delta;
+    }
 
-    return new Node(beginIndex, endIndex, 0, Math.min(left.minValue, right.minValue), left, right);
-  }
-}
+    void pushDown() {
+      if (delta != 0) {
+        left.apply(delta);
+        right.apply(delta);
 
-class Node {
-  int beginIndex;
-  int endIndex;
-  long delta;
-  long minValue;
-  Node left;
-  Node right;
+        delta = 0;
+      }
+    }
 
-  Node(int beginIndex, int endIndex, long delta, long minValue, Node left, Node right) {
-    this.beginIndex = beginIndex;
-    this.endIndex = endIndex;
-    this.delta = delta;
-    this.minValue = minValue;
-    this.left = left;
-    this.right = right;
+    void apply(long d) {
+      delta += d;
+    }
+
+    void pull() {
+      minValue = Math.min(left.getComputedMinValue(), right.getComputedMinValue());
+    }
   }
 }
