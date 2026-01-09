@@ -37,7 +37,7 @@ public class Main {
         int l = fields[1];
         int r = fields[2];
 
-        result.add(segTree.querySum(l - 1, r - 1));
+        result.add(segTree.query(l - 1, r - 1).sum());
       } else if (type == 2) {
         int l = fields[1];
         int r = fields[2];
@@ -64,21 +64,19 @@ class SegTree {
   }
 
   private Node buildNode(int[] values, int beginIndex, int endIndex) {
+    Node node = new Node(beginIndex, endIndex);
+
     if (beginIndex == endIndex) {
-      return new Node(beginIndex, endIndex, values[beginIndex], values[beginIndex], null, null);
+      node.element = new Element(values[beginIndex], values[beginIndex]);
+    } else {
+      int middleIndex = (beginIndex + endIndex) / 2;
+      node.left = buildNode(values, beginIndex, middleIndex);
+      node.right = buildNode(values, middleIndex + 1, endIndex);
+
+      node.pull();
     }
 
-    int middleIndex = (beginIndex + endIndex) / 2;
-    Node left = buildNode(values, beginIndex, middleIndex);
-    Node right = buildNode(values, middleIndex + 1, endIndex);
-
-    return new Node(
-        beginIndex,
-        endIndex,
-        Math.max(left.maxValue, right.maxValue),
-        left.sum + right.sum,
-        left,
-        right);
+    return node;
   }
 
   void updateValue(int index, int value) {
@@ -88,14 +86,12 @@ class SegTree {
   private void updateValue(int index, int value, Node node) {
     if (node.beginIndex <= index && node.endIndex >= index) {
       if (node.beginIndex == node.endIndex) {
-        node.maxValue = value;
-        node.sum = node.maxValue;
+        node.element = new Element(value, value);
       } else {
         updateValue(index, value, node.left);
         updateValue(index, value, node.right);
 
-        node.maxValue = Math.max(node.left.maxValue, node.right.maxValue);
-        node.sum = node.left.sum + node.right.sum;
+        node.pull();
       }
     }
   }
@@ -106,67 +102,56 @@ class SegTree {
 
   private void updateMod(int beginIndex, int endIndex, int x, Node node) {
     if (!(node.beginIndex > endIndex || node.endIndex < beginIndex)
-        && queryMaxValue(beginIndex, endIndex, node) >= x) {
+        && query(beginIndex, endIndex, node).maxValue >= x) {
       if (node.beginIndex == node.endIndex) {
-        node.maxValue %= x;
-        node.sum = node.maxValue;
+        node.element = new Element(node.element.maxValue % x, node.element.maxValue % x);
       } else {
         updateMod(beginIndex, endIndex, x, node.left);
         updateMod(beginIndex, endIndex, x, node.right);
 
-        node.maxValue = Math.max(node.left.maxValue, node.right.maxValue);
-        node.sum = node.left.sum + node.right.sum;
+        node.pull();
       }
     }
   }
 
-  public int queryMaxValue(int beginIndex, int endIndex) {
-    return queryMaxValue(beginIndex, endIndex, root);
+  Element query(int beginIndex, int endIndex) {
+    return query(beginIndex, endIndex, root);
   }
 
-  private int queryMaxValue(int beginIndex, int endIndex, Node node) {
+  private Element query(int beginIndex, int endIndex, Node node) {
     if (node.beginIndex > endIndex || node.endIndex < beginIndex) {
-      return Integer.MIN_VALUE;
+      return new Element(Integer.MIN_VALUE, 0);
     }
     if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
-      return node.maxValue;
+      return node.element;
     }
 
-    return Math.max(
-        queryMaxValue(beginIndex, endIndex, node.left),
-        queryMaxValue(beginIndex, endIndex, node.right));
-  }
-
-  public long querySum(int beginIndex, int endIndex) {
-    return querySum(beginIndex, endIndex, root);
-  }
-
-  private long querySum(int beginIndex, int endIndex, Node node) {
-    if (node.beginIndex > endIndex || node.endIndex < beginIndex) {
-      return 0;
-    }
-    if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
-      return node.sum;
-    }
-
-    return querySum(beginIndex, endIndex, node.left) + querySum(beginIndex, endIndex, node.right);
+    return Element.merge(
+        query(beginIndex, endIndex, node.left), query(beginIndex, endIndex, node.right));
   }
 
   static class Node {
     int beginIndex;
     int endIndex;
-    int maxValue;
-    long sum;
+    Element element;
     Node left;
     Node right;
 
-    Node(int beginIndex, int endIndex, int maxValue, long sum, Node left, Node right) {
+    Node(int beginIndex, int endIndex) {
       this.beginIndex = beginIndex;
       this.endIndex = endIndex;
-      this.maxValue = maxValue;
-      this.sum = sum;
-      this.left = left;
-      this.right = right;
+    }
+
+    void pull() {
+      element = Element.merge(left.element, right.element);
+    }
+  }
+
+  record Element(int maxValue, long sum) {
+    static Element merge(Element leftElement, Element rightElement) {
+      return new Element(
+          Math.max(leftElement.maxValue, rightElement.maxValue),
+          leftElement.sum + rightElement.sum);
     }
   }
 }
