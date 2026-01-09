@@ -69,29 +69,26 @@ class LazySegTree {
   }
 
   private Node buildNode(int[] values, int beginIndex, int endIndex) {
+    Node node = new Node(beginIndex, endIndex, new boolean[Main.BIT_NUM]);
+
     if (beginIndex == endIndex) {
-      return new Node(
-          beginIndex,
-          endIndex,
-          new boolean[Main.BIT_NUM],
-          IntStream.range(0, Main.BIT_NUM).map(b -> 1 - ((values[beginIndex] >> b) & 1)).toArray(),
-          IntStream.range(0, Main.BIT_NUM).map(b -> (values[beginIndex] >> b) & 1).toArray(),
-          null,
-          null);
+      node.num0s =
+          IntStream.range(0, Main.BIT_NUM).map(b -> 1 - ((values[beginIndex] >> b) & 1)).toArray();
+      node.num1s =
+          IntStream.range(0, Main.BIT_NUM).map(b -> (values[beginIndex] >> b) & 1).toArray();
+    } else {
+      int middleIndex = (beginIndex + endIndex) / 2;
+      node.left = buildNode(values, beginIndex, middleIndex);
+      node.right = buildNode(values, middleIndex + 1, endIndex);
+
+      node.num0s = new int[Main.BIT_NUM];
+      node.num1s = new int[Main.BIT_NUM];
+      for (int b = 0; b < Main.BIT_NUM; ++b) {
+        node.pull(b);
+      }
     }
 
-    int middleIndex = (beginIndex + endIndex) / 2;
-    Node left = buildNode(values, beginIndex, middleIndex);
-    Node right = buildNode(values, middleIndex + 1, endIndex);
-
-    return new Node(
-        beginIndex,
-        endIndex,
-        new boolean[Main.BIT_NUM],
-        IntStream.range(0, Main.BIT_NUM).map(b -> left.num0s[b] + right.num0s[b]).toArray(),
-        IntStream.range(0, Main.BIT_NUM).map(b -> left.num1s[b] + right.num1s[b]).toArray(),
-        left,
-        right);
+    return node;
   }
 
   void update(int beginIndex, int endIndex, int b) {
@@ -141,21 +138,10 @@ class LazySegTree {
     Node left;
     Node right;
 
-    public Node(
-        int beginIndex,
-        int endIndex,
-        boolean[] flipped,
-        int[] num0s,
-        int[] num1s,
-        Node left,
-        Node right) {
+    public Node(int beginIndex, int endIndex, boolean[] flipped) {
       this.beginIndex = beginIndex;
       this.endIndex = endIndex;
       this.flipped = flipped;
-      this.num0s = num0s;
-      this.num1s = num1s;
-      this.left = left;
-      this.right = right;
     }
 
     int getComputedNum0(int b) {
