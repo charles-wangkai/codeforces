@@ -1,4 +1,5 @@
 import java.util.Scanner;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -35,73 +36,49 @@ public class Main {
           .collect(Collectors.joining(" "));
     }
 
-    SegTree segTree =
-        new SegTree(IntStream.range(0, a.length - 1).map(i -> Math.abs(a[i] - a[i + 1])).toArray());
+    SparseTable sparseTable =
+        new SparseTable(
+            IntStream.range(0, a.length - 1).map(i -> Math.abs(a[i] - a[i + 1])).toArray(),
+            Main::gcd);
 
     return IntStream.range(0, l.length)
-        .map(i -> segTree.query(l[i] - 1, r[i] - 2))
+        .map(i -> (l[i] < r[i]) ? sparseTable.query(l[i] - 1, r[i] - 2) : 0)
         .mapToObj(String::valueOf)
         .collect(Collectors.joining(" "));
   }
+
+  static int gcd(int x, int y) {
+    return (y == 0) ? x : gcd(y, x % y);
+  }
 }
 
-class SegTree {
-  Node root;
+class SparseTable {
+  int[][] st;
+  BinaryOperator<Integer> binaryOperator;
 
-  SegTree(int[] values) {
-    root = buildNode(values, 0, values.length - 1);
-  }
-
-  private Node buildNode(int[] values, int beginIndex, int endIndex) {
-    Node node = new Node(beginIndex, endIndex);
-
-    if (beginIndex == endIndex) {
-      node.g = values[beginIndex];
-    } else {
-      int middleIndex = (beginIndex + endIndex) / 2;
-      node.left = buildNode(values, beginIndex, middleIndex);
-      node.right = buildNode(values, middleIndex + 1, endIndex);
-
-      node.pull();
+  SparseTable(int[] values, BinaryOperator<Integer> binaryOperator) {
+    st = new int[values.length][computeExponent(values.length) + 1];
+    for (int i = 0; i < st.length; ++i) {
+      st[i][0] = values[i];
+    }
+    for (int exponent = 1; exponent < st[0].length; ++exponent) {
+      for (int i = 0; i + (1 << exponent) <= st.length; ++i) {
+        st[i][exponent] =
+            binaryOperator.apply(st[i][exponent - 1], st[i + (1 << (exponent - 1))][exponent - 1]);
+      }
     }
 
-    return node;
+    this.binaryOperator = binaryOperator;
   }
 
   int query(int beginIndex, int endIndex) {
-    return query(beginIndex, endIndex, root);
+    int exponent = computeExponent(endIndex - beginIndex + 1);
+
+    return binaryOperator.apply(
+        st[beginIndex][exponent], st[endIndex - (1 << exponent) + 1][exponent]);
   }
 
-  private int query(int beginIndex, int endIndex, Node node) {
-    if (node.beginIndex > endIndex || node.endIndex < beginIndex) {
-      return 0;
-    }
-    if (node.beginIndex >= beginIndex && node.endIndex <= endIndex) {
-      return node.g;
-    }
-
-    return Node.gcd(
-        query(beginIndex, endIndex, node.left), query(beginIndex, endIndex, node.right));
-  }
-
-  static class Node {
-    int beginIndex;
-    int endIndex;
-    int g;
-    Node left;
-    Node right;
-
-    Node(int beginIndex, int endIndex) {
-      this.beginIndex = beginIndex;
-      this.endIndex = endIndex;
-    }
-
-    void pull() {
-      g = gcd(left.g, right.g);
-    }
-
-    private static int gcd(int x, int y) {
-      return (y == 0) ? x : gcd(y, x % y);
-    }
+  private int computeExponent(int x) {
+    return 31 - Integer.numberOfLeadingZeros(x);
   }
 }
