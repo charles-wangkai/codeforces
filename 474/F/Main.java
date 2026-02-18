@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -34,8 +35,8 @@ public class Main {
   }
 
   static String solve(int[] s, int[] l, int[] r) {
-    int[][] mins = buildSparseTable(s, Math::min);
-    int[][] gcds = buildSparseTable(s, Main::gcd);
+    SparseTable minSparseTable = new SparseTable(s, Math::min);
+    SparseTable gcdSparseTable = new SparseTable(s, Main::gcd);
 
     Map<Integer, List<Integer>> valueToIndices = new HashMap<>();
     for (int i = 0; i < s.length; ++i) {
@@ -46,10 +47,10 @@ public class Main {
     return IntStream.range(0, l.length)
         .map(
             i -> {
-              int min = queryRange(mins, Math::min, l[i] - 1, r[i] - 1);
+              int min = minSparseTable.query(l[i] - 1, r[i] - 1);
 
               return (r[i] - l[i] + 1)
-                  - ((queryRange(gcds, Main::gcd, l[i] - 1, r[i] - 1) % min == 0)
+                  - ((gcdSparseTable.query(l[i] - 1, r[i] - 1) % min == 0)
                       ? computeRangeNum(valueToIndices.get(min), l[i] - 1, r[i] - 1)
                       : 0);
             })
@@ -71,35 +72,38 @@ public class Main {
     return to - from + 1;
   }
 
-  static int queryRange(int[][] sparseTable, Merger merger, int beginIndex, int endIndex) {
-    int exponent = Integer.numberOfTrailingZeros(Integer.highestOneBit(endIndex - beginIndex + 1));
-
-    return merger.merge(
-        sparseTable[beginIndex][exponent], sparseTable[endIndex - (1 << exponent) + 1][exponent]);
-  }
-
-  static int[][] buildSparseTable(int[] s, Merger merger) {
-    int maxExponent = Integer.numberOfTrailingZeros(Integer.highestOneBit(s.length));
-
-    int[][] result = new int[s.length][maxExponent + 1];
-    for (int i = 0; i < result.length; ++i) {
-      result[i][0] = s[i];
-    }
-    for (int i = 1; i <= maxExponent; ++i) {
-      for (int beginIndex = 0; beginIndex + (1 << i) <= s.length; ++beginIndex) {
-        result[beginIndex][i] =
-            merger.merge(result[beginIndex][i - 1], result[beginIndex + (1 << (i - 1))][i - 1]);
-      }
-    }
-
-    return result;
-  }
-
   static int gcd(int x, int y) {
     return (y == 0) ? x : gcd(y, x % y);
   }
 }
 
-interface Merger {
-  int merge(int x, int y);
+class SparseTable {
+  int[][] st;
+  BinaryOperator<Integer> binaryOperator;
+
+  SparseTable(int[] values, BinaryOperator<Integer> binaryOperator) {
+    st = new int[values.length][computeExponent(values.length) + 1];
+    for (int i = 0; i < st.length; ++i) {
+      st[i][0] = values[i];
+    }
+    for (int exponent = 1; exponent < st[0].length; ++exponent) {
+      for (int i = 0; i + (1 << exponent) <= st.length; ++i) {
+        st[i][exponent] =
+            binaryOperator.apply(st[i][exponent - 1], st[i + (1 << (exponent - 1))][exponent - 1]);
+      }
+    }
+
+    this.binaryOperator = binaryOperator;
+  }
+
+  int query(int beginIndex, int endIndex) {
+    int exponent = computeExponent(endIndex - beginIndex + 1);
+
+    return binaryOperator.apply(
+        st[beginIndex][exponent], st[endIndex - (1 << exponent) + 1][exponent]);
+  }
+
+  private int computeExponent(int x) {
+    return 31 - Integer.numberOfLeadingZeros(x);
+  }
 }
