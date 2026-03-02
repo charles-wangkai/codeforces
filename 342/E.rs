@@ -36,32 +36,15 @@ fn main() {
 }
 
 fn solve(a: &[usize], b: &[usize], t: &[i32], v: &[usize]) -> String {
-    let n = a.len() + 1;
+    let tree = Tree::new(
+        &a.iter().map(|ai| ai - 1).collect::<Vec<_>>(),
+        &b.iter().map(|bi| bi - 1).collect::<Vec<_>>(),
+    );
 
-    let mut adj_vecs = vec![Vec::new(); n];
-    for i in 0..a.len() {
-        adj_vecs[a[i] - 1].push(b[i] - 1);
-        adj_vecs[b[i] - 1].push(a[i] - 1);
-    }
-
-    let mut parents = vec![0; n];
-    let mut depths = vec![0; n];
-    search(&mut parents, &mut depths, &adj_vecs, usize::MAX, 0, 0);
-
-    let mut ancestors = vec![vec![None; (n.ilog2() as usize) + 1]; n];
-    for i in 1..parents.len() {
-        ancestors[i][0] = Some(parents[i]);
-    }
-    for j in 1..ancestors[0].len() {
-        for i in 0..ancestors.len() {
-            ancestors[i][j] = ancestors[i][j - 1].and_then(|a| ancestors[a][j - 1])
-        }
-    }
-
-    let block_size = 1.max(n.isqrt());
+    let block_size = 1.max(tree.n.isqrt());
 
     let mut result = Vec::new();
-    let mut min_distances = vec![i32::MAX; n];
+    let mut min_distances = vec![i32::MAX; tree.n];
     let mut red_nodes = HashSet::new();
     let mut pending = Vec::new();
     pending.push(0);
@@ -70,7 +53,7 @@ fn solve(a: &[usize], b: &[usize], t: &[i32], v: &[usize]) -> String {
             red_nodes.extend(&pending);
             pending.clear();
 
-            build_min_distances(&mut min_distances, &adj_vecs, &red_nodes);
+            build_min_distances(&mut min_distances, &tree, &red_nodes);
         }
 
         if t[i] == 1 {
@@ -78,8 +61,7 @@ fn solve(a: &[usize], b: &[usize], t: &[i32], v: &[usize]) -> String {
         } else {
             let mut min_distance = min_distances[v[i] - 1];
             for &node in &pending {
-                min_distance =
-                    min_distance.min(compute_distance(&depths, &ancestors, v[i] - 1, node));
+                min_distance = min_distance.min(tree.compute_distance(v[i] - 1, node));
             }
 
             result.push(min_distance);
@@ -93,11 +75,7 @@ fn solve(a: &[usize], b: &[usize], t: &[i32], v: &[usize]) -> String {
         .join("\n")
 }
 
-fn build_min_distances(
-    min_distances: &mut [i32],
-    adj_vecs: &[Vec<usize>],
-    red_nodes: &HashSet<usize>,
-) {
+fn build_min_distances(min_distances: &mut [i32], tree: &Tree, red_nodes: &HashSet<usize>) {
     min_distances.fill(i32::MAX);
 
     let mut queue = VecDeque::new();
@@ -107,7 +85,7 @@ fn build_min_distances(
     }
 
     while let Some(head) = queue.pop_front() {
-        for &adj in &adj_vecs[head] {
+        for &adj in &tree.adj_vecs[head] {
             if min_distances[adj] == i32::MAX {
                 min_distances[adj] = min_distances[head] + 1;
                 queue.push_back(adj);
@@ -116,55 +94,89 @@ fn build_min_distances(
     }
 }
 
-fn compute_distance(
-    depths: &[i32],
-    ancestors: &[Vec<Option<usize>>],
-    node1: usize,
-    node2: usize,
-) -> i32 {
-    depths[node1] + depths[node2] - depths[find_lca(&depths, &ancestors, node1, node2)] * 2
+#[allow(dead_code)]
+struct Tree {
+    n: usize,
+    u: Vec<usize>,
+    v: Vec<usize>,
+    adj_vecs: Vec<Vec<usize>>,
+    depths: Vec<i32>,
+    ancestors: Vec<Vec<usize>>,
 }
 
-fn find_lca(depths: &[i32], ancestors: &[Vec<Option<usize>>], mut u: usize, mut v: usize) -> usize {
-    if depths[u] < depths[v] {
-        return find_lca(depths, ancestors, v, u);
+#[allow(dead_code)]
+impl Tree {
+    fn new(u: &[usize], v: &[usize]) -> Self {
+        let n = u.len() + 1;
+
+        let mut adj_vecs = vec![Vec::new(); n];
+        for i in 0..u.len() {
+            adj_vecs[u[i]].push(v[i]);
+            adj_vecs[v[i]].push(u[i]);
+        }
+
+        let mut tree = Self {
+            n,
+            u: u.to_vec(),
+            v: v.to_vec(),
+            adj_vecs,
+            depths: vec![0; n],
+            ancestors: vec![vec![usize::MAX; (n.ilog2() as usize) + 1]; n],
+        };
+        tree.init_iterative();
+
+        tree
     }
 
-    let depth_diff = depths[u] - depths[v];
-    for i in 0..ancestors[0].len() {
-        if ((depth_diff >> i) & 1) == 1 {
-            u = ancestors[u][i].unwrap();
+    fn init_iterative(&mut self) {
+        let mut stack = vec![(0, usize::MAX, 0)];
+
+        while let Some((node, parent, depth)) = stack.pop() {
+            self.depths[node] = depth;
+            self.ancestors[node][0] = parent;
+
+            for i in 1..self.ancestors[node].len() {
+                if self.ancestors[node][i - 1] != usize::MAX {
+                    self.ancestors[node][i] = self.ancestors[self.ancestors[node][i - 1]][i - 1];
+                }
+            }
+
+            for &adj in &self.adj_vecs[node] {
+                if adj != parent {
+                    stack.push((adj, node, depth + 1));
+                }
+            }
         }
     }
 
-    if u == v {
-        return u;
+    fn find_lca(&self, mut node1: usize, mut node2: usize) -> usize {
+        if self.depths[node1] < self.depths[node2] {
+            return self.find_lca(node2, node1);
+        }
+
+        for i in (0..self.ancestors[node1].len()).rev() {
+            if self.ancestors[node1][i] != usize::MAX {
+                if self.depths[self.ancestors[node1][i]] >= self.depths[node2] {
+                    node1 = self.ancestors[node1][i];
+                }
+            }
+        }
+
+        if node1 == node2 {
+            return node1;
+        }
+
+        for i in (0..self.ancestors[0].len()).rev() {
+            if self.ancestors[node1][i] != self.ancestors[node2][i] {
+                node1 = self.ancestors[node1][i];
+                node2 = self.ancestors[node2][i];
+            }
+        }
+
+        self.ancestors[node1][0]
     }
 
-    for i in (0..ancestors[0].len()).rev() {
-        if ancestors[u][i] != ancestors[v][i] {
-            u = ancestors[u][i].unwrap();
-            v = ancestors[v][i].unwrap();
-        }
-    }
-
-    ancestors[u][0].unwrap()
-}
-
-fn search(
-    parents: &mut [usize],
-    depths: &mut [i32],
-    adj_vecs: &[Vec<usize>],
-    parent: usize,
-    node: usize,
-    depth: i32,
-) {
-    parents[node] = parent;
-    depths[node] = depth;
-
-    for &adj in &adj_vecs[node] {
-        if adj != parent {
-            search(parents, depths, adj_vecs, node, adj, depth + 1);
-        }
+    fn compute_distance(&self, node1: usize, node2: usize) -> i32 {
+        self.depths[node1] + self.depths[node2] - self.depths[self.find_lca(node1, node2)] * 2
     }
 }
